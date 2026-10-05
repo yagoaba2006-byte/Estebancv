@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cascade — palette texture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@700&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* les 24 teintes sont lues depuis la texture par le GPU.          */
+    /* on en re-declare 6 ici, uniquement pour le DOM (texte, fonds).  */
+    --sand-light:#f7f3ea;
+    --sand:#eee6d6;
+    --granite-deep:#333736;
+    --water:#7fc6c2;
+    --water-deep:#479ea3;
+    --ink:#2b2622;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--sand-light);
+    color:var(--ink);
+    font-family:"Nunito",system-ui,sans-serif;
+    font-weight:400;
+    overflow-x:hidden;
+  }
+
+  /* ---- scene collante, le scroll pilote la camera ---- */
+  #stage{position:sticky;top:0;height:100svh;width:100%;z-index:0}
+  #stage canvas{display:block;width:100%;height:100%}
+  /* remonte sur la scene collante : les textes se posent sur le canvas */
+  #scroller{height:460svh;margin-top:-100svh;position:relative;z-index:1;pointer-events:none}
+
+  /* ---- les deux marges nues : 39% a gauche, 39% a droite ---- */
+  .panel{
+    position:absolute;
+    width:34%;
+    max-width:420px;
+    pointer-events:auto;
+  }
+  .panel.left{left:3vw;text-align:left}
+  .panel.right{right:3vw;text-align:right}
+
+  .panel h2{
+    font-family:"Amatic SC",cursive;
+    font-weight:700;
+    font-size:clamp(2.6rem,5.2vw,4.4rem);
+    line-height:.92;
+    letter-spacing:.01em;
+    color:var(--granite-deep);
+    margin-bottom:.5rem;
+  }
+  .panel p{
+    font-size:clamp(.95rem,1.15vw,1.08rem);
+    line-height:1.62;
+    color:#565b59;
+    max-width:34ch;
+  }
+  .panel.right p{margin-left:auto}
+
+  .tag{
+    display:inline-block;
+    font-size:.72rem;
+    font-weight:900;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--water-deep);
+    border:2px solid var(--water);
+    border-radius:15px;      /* le rayon de bruno-simon.com */
+    padding:.42rem .85rem;
+    margin-bottom:1rem;
+  }
+
+  /* placement vertical des blocs le long du scroll */
+  #b1{top:14svh}
+  #b2{top:120svh}
+  #b3{top:236svh}
+  #b4{top:348svh}
+
+  /* ---- bandeau de debug : montre le gabarit 22 / 39 ---- */
+  #guides{
+    position:fixed;inset:0;z-index:2;pointer-events:none;
+    display:none;
+  }
+  #guides.on{display:block}
+  #guides span{
+    position:absolute;top:0;bottom:0;
+    border-left:1px dashed rgba(199,21,21,.55);
+  }
+  #guides span:nth-child(1){left:39%}
+  #guides span:nth-child(2){left:61%}
+  #guides b{
+    position:absolute;left:39%;width:22%;top:0;bottom:0;
+    background:rgba(127,198,194,.13);
+  }
+
+  #tools{
+    position:fixed;right:14px;bottom:14px;z-index:3;
+    display:flex;gap:8px;
+  }
+  #tools button{
+    font-family:"Nunito",sans-serif;font-weight:700;font-size:.72rem;
+    letter-spacing:.1em;text-transform:uppercase;
+    background:var(--granite-deep);color:var(--sand-light);
+    border:0;border-radius:15px;padding:.6rem 1rem;cursor:pointer;
+  }
+  #tools button:hover{background:var(--ink)}
+
+  @media (max-width:760px){
+    .panel{width:86%;left:7vw;right:auto;text-align:left}
+    .panel.right p{margin-left:0}
+  }
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+
+<div id="stage"><canvas id="c"></canvas></div>
+
+<div id="scroller">
+  <div class="panel left"  id="b1">
+    <span class="tag">Source</span>
+    <h2>La cascade<br>commence en haut</h2>
+    <p>Une colonne d'eau unique, posee au centre exact du cadre. Tout le reste est du sable nu — l'espace est la matiere principale, pas le decor.</p>
+  </div>
+
+  <div class="panel right" id="b2">
+    <span class="tag">Granit</span>
+    <h2>Neuf paliers<br>de pierre</h2>
+    <p>Chaque palier elargit la chute. La mousse s'accroche aux aretes, les fougeres poussent dans les angles ombrages.</p>
+  </div>
+
+  <div class="panel left"  id="b3">
+    <span class="tag">Verre</span>
+    <h2>Une sphere<br>et un anneau</h2>
+    <p>Deux objets transparents interrompent la chute. La sphere reflechit la vallee, l'anneau laisse l'eau le traverser.</p>
+  </div>
+
+  <div class="panel right" id="b4">
+    <span class="tag">Bassin</span>
+    <h2>Et finit<br>en turquoise</h2>
+    <p>L'eau se rassemble dans un bassin translucide, a peine plus large que la colonne qui l'a remplie.</p>
+  </div>
+</div>
+
+<div id="guides"><span></span><span></span><b></b></div>
+<div id="tools">
+  <button id="toggle" type="button">gabarit 22 / 39</button>
+  <button id="export" type="button">exporter png</button>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.186.1/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.186.1/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+/* ------------------------------------------------------------------ *
+ * 1. LA TEXTURE DE DESIGN
+ *    Un PNG de 128x4 pixels, 200 octets, 24 teintes.
+ *    C'est le meme principe exact que palette.png sur bruno-simon.com.
+ *    Aucun materiau ne porte de couleur : chaque geometrie pointe vers
+ *    une coordonnee U dans cette bande, et le GPU y lit sa teinte.
+ *    Une seule texture, un seul materiau, un seul draw call par groupe.
+ * ------------------------------------------------------------------ */
+const PALETTE_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAAAECAIAAADJfaBSAAAAj0lEQVR4nGP8/vkVAwx8//wGzv7w5gWc/ezxfTj72uv/cPaDew/g7Dt378LZd+8g2K2L5sHZx9++g7NP3HiIMOfsRTi7KUwMzr506wbC3uuPEepvIszZPHsjnP38zSeEmicI94d4OsLZDMdr4MynjyfC2e61CHuv3rrHQC/ARDebRgFWMBoBAwxGI4BhYAEAdSU3CL7egiAAAAAASUVORK5CYII=';
+
+/* ordre des swatches dans la bande (4 px chacun) */
+const SWATCHES = [
+  'sandLight','sand','sandShade','sandWet',
+  'graniteLight','granite','graniteShade','graniteDeep',
+  'foam','water','waterDeep','poolShade',
+  'mossLight','moss','fern','foliageShade',
+  'mountainHaze','mountainFar','mountainNear','white',
+  'warmAccent','goldAccent','ink','black'
+];
+const SW = 4, TEX_W = 128;
+const U = {};
+SWATCHES.forEach((name, i) => { U[name] = (i * SW + SW / 2) / TEX_W; });
+
+const palette = new THREE.TextureLoader().load(PALETTE_PNG);
+palette.magFilter = THREE.NearestFilter;   // pas d'interpolation entre teintes
+palette.minFilter = THREE.NearestFilter;
+palette.generateMipmaps = false;
+palette.colorSpace = THREE.SRGBColorSpace;
+
+/* degrade a 3 paliers : la lumiere devient des bandes, pas un fondu */
+const steps = new Uint8Array([90, 160, 235, 255]);
+const gradientMap = new THREE.DataTexture(steps, steps.length, 1, THREE.RedFormat);
+gradientMap.magFilter = THREE.NearestFilter;
+gradientMap.minFilter = THREE.NearestFilter;
+gradientMap.needsUpdate = true;
+
+const MAT = new THREE.MeshToonMaterial({ map: palette, gradientMap });
+const MAT_GLASS = new THREE.MeshPhysicalMaterial({
+  color: 0xffffff, transmission: .92, thickness: .55, roughness: .08,
+  ior: 1.42, transparent: true, opacity: .9
+});
+
+/* ------------------------------------------------------------------ *
+ * 2. assigner une teinte = reecrire les UV de la geometrie
+ * ------------------------------------------------------------------ */
+function paint(geometry, swatch) {
+  const uv = geometry.attributes.uv;
+  const u = U[swatch];
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, u, 0.5);
+  uv.needsUpdate = true;
+  return geometry;
+}
+function mesh(geometry, swatch, mat = MAT) {
+  return new THREE.Mesh(paint(geometry, swatch), mat);
+}
+
+/* ------------------------------------------------------------------ *
+ * 3. scene
+ * ------------------------------------------------------------------ */
+const canvas = document.getElementById('c');
+/* preserveDrawingBuffer : le navigateur garde la derniere image rendue,
+   ce qui permet d'exporter la vue courante en PNG (bouton en bas a droite).
+   Cette image sert directement de reference de structure pour Firefly :
+   le gabarit 22 / 39 est deja respecte, il n'y a rien a recadrer. */
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xf7f3ea);
+scene.fog = new THREE.Fog(0xf7f3ea, 26, 72);
+
+const camera = new THREE.PerspectiveCamera(35, 1, .1, 200);
+
+const key = new THREE.DirectionalLight(0xfff3e6, 2.1);
+key.position.set(-7, 14, 9);
+key.castShadow = true;
+key.shadow.mapSize.set(1024, 1024);
+key.shadow.camera.near = 1;
+key.shadow.camera.far = 50;
+key.shadow.camera.left = -14;
+key.shadow.camera.right = 14;
+key.shadow.camera.top = 20;
+key.shadow.camera.bottom = -20;
+scene.add(key);
+scene.add(new THREE.HemisphereLight(0xffffff, 0xded2be, 1.25));
+
+/* --- sable : le fond nu qui occupe 78% de la largeur --- */
+const ground = mesh(new THREE.PlaneGeometry(220, 220, 1, 1), 'sand');
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = -11;
+ground.receiveShadow = true;
+scene.add(ground);
+
+/* --- montagnes floues, bord haut --- */
+const mountains = new THREE.Group();
+/* elles affleurent a peine la ligne d'horizon : les deux marges doivent
+   rester lisibles pour le texte, donc on les enfonce dans le sable. */
+[['mountainNear', 15, -40, 8], ['mountainFar', 21, -54, 11], ['mountainHaze', 27, -70, 14]]
+  .forEach(([swatch, spread, z, h]) => {
+    for (let i = -3; i <= 3; i++) {
+      const m = mesh(new THREE.ConeGeometry(h * .8, h, 5, 1), swatch);
+      m.position.set(i * spread * .42 + (i % 2 ? 2.5 : -2.5), -11 + h / 2 - h * .46, z);
+      m.rotation.y = i * .7;
+      m.scale.y = .72 + ((i * 37) % 11) / 22;
+      mountains.add(m);
+    }
+  });
+scene.add(mountains);
+
+/* --- la colonne : 9 paliers de granit qui s'elargissent --- */
+const CASCADE = new THREE.Group();
+const TIERS = 9;
+const TOP_Y = 7.4, BOTTOM_Y = -9.2;
+
+for (let i = 0; i < TIERS; i++) {
+  const t = i / (TIERS - 1);
+  const y = THREE.MathUtils.lerp(TOP_Y, BOTTOM_Y, t);
+  const w = THREE.MathUtils.lerp(1.05, 3.0, Math.pow(t, .78));
+  const d = w * .74;
+  const h = .62;
+
+  const slab = mesh(new THREE.BoxGeometry(w, h, d),
+                    i % 3 === 0 ? 'graniteShade' : 'granite');
+  slab.position.set((i % 2 ? .13 : -.13) * w, y, (i % 2 ? -.16 : .16));
+  slab.rotation.y = (i % 2 ? 1 : -1) * .12 + i * .05;
+  slab.castShadow = true;
+  slab.receiveShadow = true;
+  CASCADE.add(slab);
+
+  /* mousse sur l'arete avant */
+  const moss = mesh(new THREE.BoxGeometry(w * .82, .13, d * .2),
+                    i % 2 ? 'moss' : 'mossLight');
+  moss.position.set(slab.position.x, y + h / 2 + .05, slab.position.z + d * .36);
+  moss.rotation.y = slab.rotation.y;
+  CASCADE.add(moss);
+
+  /* fougeres */
+  if (i % 2 === 0) {
+    const fern = mesh(new THREE.ConeGeometry(.2, .66, 4, 1), i % 4 ? 'fern' : 'foliageShade');
+    fern.position.set(slab.position.x - w * .42, y + h / 2 + .3, slab.position.z + d * .22);
+    fern.rotation.z = .3;
+    CASCADE.add(fern);
+  }
+
+  /* chute d'eau vers le palier suivant */
+  if (i < TIERS - 1) {
+    const nextY = THREE.MathUtils.lerp(TOP_Y, BOTTOM_Y, (i + 1) / (TIERS - 1));
+    const fall = nextY - y + h;
+    const water = mesh(new THREE.BoxGeometry(w * .30, Math.abs(fall), d * .17),
+                       i % 2 ? 'foam' : 'water');
+    water.position.set(slab.position.x, y - Math.abs(fall) / 2, slab.position.z + d * .18);
+    water.rotation.y = slab.rotation.y;
+    CASCADE.add(water);
+
+    /* ecume a l'impact : trois petits cubes blancs, rien de plus */
+    for (let k = 0; k < 3; k++) {
+      const spray = mesh(new THREE.BoxGeometry(.17, .17, .17), k === 1 ? 'white' : 'foam');
+      spray.position.set(
+        slab.position.x + (k - 1) * w * .22,
+        nextY + .45 + (k % 2) * .22,
+        slab.position.z + d * (.28 + k * .06)
+      );
+      spray.rotation.set(.5 + k, .7 * k, .3);
+      CASCADE.add(spray);
+    }
+  }
+}
+
+/* --- bassin turquoise --- */
+/* rayon 1.55 : le bassin reste sous la barre des 25% de largeur visible,
+   comme la colonne. Un bassin plus large casserait le gabarit. */
+const pool = mesh(new THREE.CylinderGeometry(1.55, 1.25, .5, 20, 1), 'waterDeep');
+pool.position.set(0, BOTTOM_Y - .55, .2);
+pool.receiveShadow = true;
+CASCADE.add(pool);
+
+const poolRim = mesh(new THREE.TorusGeometry(1.6, .14, 8, 24), 'sandWet');
+poolRim.rotation.x = -Math.PI / 2;
+poolRim.position.copy(pool.position);
+CASCADE.add(poolRim);
+
+/* --- sphere de verre, palier central --- */
+const sphere = new THREE.Mesh(new THREE.SphereGeometry(.78, 32, 24), MAT_GLASS);
+sphere.position.set(1.55, -.6, 1.15);
+CASCADE.add(sphere);
+
+/* --- anneau de verre traverse par l'eau, palier bas --- */
+const ring = new THREE.Mesh(new THREE.TorusGeometry(1.0, .13, 14, 40), MAT_GLASS);
+ring.position.set(-1.35, -5.6, .9);
+ring.rotation.set(.34, .5, .12);
+CASCADE.add(ring);
+
+scene.add(CASCADE);
+
+/* ------------------------------------------------------------------ *
+ * 4. COMPOSITION VERROUILLEE
+ *    La colonne fait 3 unites de large. On veut qu'elle occupe 22% de
+ *    la largeur visible -> la largeur visible doit valoir 3 / 0.22.
+ *    On recalcule la distance camera a chaque resize, donc le cadrage
+ *    tient a tous les ratios. Les 39% de chaque cote restent nus.
+ * ------------------------------------------------------------------ */
+const CASCADE_WIDTH = 3.0;
+const CENTER_FRACTION = 0.22;
+const TARGET_VISIBLE_WIDTH = CASCADE_WIDTH / CENTER_FRACTION;  // 13.64 unites
+
+let camDist = 13;
+
+function resize() {
+  /* on mesure le canvas lui-meme, pas la fenetre : l'element est pilote
+     par le CSS, et un ResizeObserver attrape aussi les cas ou l'evenement
+     resize de window ne part pas (iframe, split view, barre mobile). */
+  const w = canvas.clientWidth || innerWidth;
+  const h = canvas.clientHeight || innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+
+  const halfFov = THREE.MathUtils.degToRad(camera.fov) / 2;
+  let visibleWidth = TARGET_VISIBLE_WIDTH;
+  /* en portrait on relache un peu, sinon la colonne devient illisible */
+  if (camera.aspect < 1) visibleWidth = CASCADE_WIDTH / 0.40;
+  camDist = visibleWidth / (2 * Math.tan(halfFov) * camera.aspect);
+
+  camera.updateProjectionMatrix();
+}
+
+/* ------------------------------------------------------------------ *
+ * 5. le scroll descend la camera le long de la chute
+ * ------------------------------------------------------------------ */
+/* progress = null tant que la premiere image n'est pas rendue : au
+   rechargement le navigateur restaure la position de scroll, et la camera
+   doit s'y poser directement au lieu de redescendre depuis le sommet. */
+let progress = null, target = 0;
+
+function readScroll() {
+  const max = document.documentElement.scrollHeight - innerHeight;
+  target = max > 0 ? THREE.MathUtils.clamp(scrollY / max, 0, 1) : 0;
+}
+
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function frame() {
+  if (progress === null) progress = target;
+  else progress += (target - progress) * (reduced ? 1 : 0.085);
+
+  const camY = THREE.MathUtils.lerp(TOP_Y + 3.4, BOTTOM_Y + 1.2, progress);
+  const lookY = THREE.MathUtils.lerp(TOP_Y - 1.2, BOTTOM_Y - 1.4, progress);
+  const orbit = (progress - .5) * .55;
+
+  camera.position.set(Math.sin(orbit) * camDist, camY, Math.cos(orbit) * camDist);
+  camera.lookAt(0, lookY, 0);
+
+  mountains.position.y = progress * 2.4;   // parallaxe douce du fond
+
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+
+addEventListener('resize', () => { resize(); readScroll(); });
+addEventListener('scroll', readScroll, { passive: true });
+new ResizeObserver(resize).observe(canvas);
+resize();
+readScroll();
+frame();
+
+/* ---- gabarit de controle ---- */
+const guides = document.getElementById('guides');
+document.getElementById('toggle').addEventListener('click', () => {
+  guides.classList.toggle('on');
+});
+
+/* export de la vue courante : reference de structure prete pour Firefly */
+document.getElementById('export').addEventListener('click', () => {
+  renderer.render(scene, camera);            // image fraiche avant lecture
+  canvas.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `cascade-structure-${Math.round(progress * 100)}.png`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, 'image/png');
+});
+</script>
+</body>
+</html>
