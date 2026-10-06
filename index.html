@@ -3,156 +3,504 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cascade — palette texture</title>
+<title>Cascade — étude de palette</title>
+<meta name="description" content="Une cascade en trois dimensions dont les vingt-quatre teintes tiennent dans une texture de 128 pixels de large. Étude de composition et de palette.">
+<meta name="theme-color" content="#f8f5ef">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23f8f5ef'/><rect x='14.5' y='3' width='3' height='17' fill='%23246a6c'/><circle cx='16' cy='24.5' r='4.5' fill='%238ecfc8'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@700&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..600,0..100,0..1&family=Inter:wght@400;500&display=swap" rel="stylesheet">
 <style>
+  /* ================================================================
+     1. JETONS
+     Six teintes seulement pour le DOM. Les vingt-quatre teintes de la
+     scene vivent dans la texture GPU, pas ici : le CSS ne duplique que
+     ce dont le texte a besoin pour rester lisible sur le canvas.
+     ================================================================ */
   :root{
-    /* les 24 teintes sont lues depuis la texture par le GPU.          */
-    /* on en re-declare 6 ici, uniquement pour le DOM (texte, fonds).  */
-    --sand-light:#f7f3ea;
-    --sand:#eee6d6;
-    --granite-deep:#333736;
-    --water:#7fc6c2;
-    --water-deep:#479ea3;
-    --ink:#2b2622;
+    --paper:#f8f5ef;
+    --paper-warm:#efe9dc;
+    --ink:#221f1c;
+    --ink-soft:#525753;
+    --accent:#246a6c;
+    --line:rgba(34,31,28,.14);
+
+    --gutter:3vw;
+    --measure:38ch;
+
+    --ease:cubic-bezier(.22,.68,.16,1);
   }
+
   *{margin:0;padding:0;box-sizing:border-box}
-  html{scroll-behavior:smooth}
+  html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
   body{
-    background:var(--sand-light);
+    background:var(--paper);
     color:var(--ink);
-    font-family:"Nunito",system-ui,sans-serif;
+    font-family:"Inter",system-ui,-apple-system,sans-serif;
+    font-size:clamp(.95rem,.86rem + .32vw,1.06rem);
+    line-height:1.7;
     font-weight:400;
     overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:rgba(36,106,108,.18)}
+
+  /* ================================================================
+     2. ECHELLE TYPOGRAPHIQUE
+     Fraunces en graisse legere et grande taille optique : le serif
+     porte la voix, l'Inter ne fait que du service. Les interlettres
+     se resserrent quand la taille monte, jamais l'inverse.
+     ================================================================ */
+  .display,h1,h2{
+    font-family:"Fraunces","Iowan Old Style",Georgia,serif;
+    font-variation-settings:"opsz" 144,"SOFT" 40,"WONK" 1;
+    font-weight:300;
+    color:var(--ink);
+    text-wrap:balance;
+  }
+  h1{
+    font-size:clamp(2.9rem,2rem + 4.6vw,5.4rem);
+    line-height:.94;
+    letter-spacing:-.022em;
+  }
+  h2{
+    font-size:clamp(2rem,1.5rem + 2.1vw,3.05rem);
+    line-height:1.02;
+    letter-spacing:-.016em;
+  }
+  .lede{
+    font-size:clamp(1.02rem,.95rem + .4vw,1.2rem);
+    line-height:1.58;
+    color:var(--ink-soft);
+    max-width:32ch;
+    margin-top:1.5rem;
+  }
+  .body{
+    color:var(--ink-soft);
+    max-width:var(--measure);
+    margin-top:1.1rem;
   }
 
-  /* ---- scene collante, le scroll pilote la camera ---- */
-  #stage{position:sticky;top:0;height:100svh;width:100%;z-index:0}
-  #stage canvas{display:block;width:100%;height:100%}
-  /* remonte sur la scene collante : les textes se posent sur le canvas */
-  #scroller{height:460svh;margin-top:-100svh;position:relative;z-index:1;pointer-events:none}
+  /* surtitre : un numero, un filet, un mot. Pas de pastille. */
+  .eyebrow{
+    display:flex;
+    /* cale sur la premiere ligne, pas sur le milieu du bloc : quand le
+       surtitre passe sur deux lignes en portrait, le filet et le numero
+       restent accroches a la ligne de tete. */
+    align-items:flex-start;
+    gap:.8rem;
+    margin-bottom:1.15rem;
+    font-size:.68rem;
+    font-weight:500;
+    line-height:1.35;
+    letter-spacing:.2em;
+    text-transform:uppercase;
+    color:var(--accent);
+  }
+  .eyebrow .num{
+    color:var(--ink);
+    opacity:.42;
+    font-variant-numeric:tabular-nums;
+  }
+  .eyebrow .rule{
+    flex:0 0 auto;
+    width:clamp(18px,2.2vw,34px);
+    height:1px;
+    margin-top:.67em;          /* milieu optique de la premiere ligne */
+    background:currentColor;
+    opacity:.55;
+  }
 
-  /* ---- les deux marges nues : 39% a gauche, 39% a droite ---- */
+  /* ================================================================
+     3. SCENE COLLANTE
+     Le canvas reste epingle, le scroll pilote la camera. Le bloc de
+     texte glisse par-dessus : un seul plan d'image, pas de sections
+     empilees qui pousseraient la scene hors du cadre.
+     ================================================================ */
+  #stage{position:sticky;top:0;height:100vh;height:100svh;width:100%;z-index:0}
+  #stage canvas{display:block;width:100%;height:100%}
+
+  /* grain + vignette : la seule matiere ajoutee par-dessus le rendu. */
+  #veil{position:fixed;inset:0;z-index:1;pointer-events:none}
+  #veil::before,#veil::after{content:"";position:absolute;inset:0}
+  #veil::before{
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='170' height='170'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size:170px 170px;
+    opacity:.052;
+    mix-blend-mode:multiply;
+  }
+  #veil::after{
+    background:radial-gradient(118% 94% at 50% 34%,transparent 50%,rgba(34,31,28,.085) 100%);
+  }
+
+  #scroller{
+    height:560vh;height:560svh;
+    margin-top:-100vh;margin-top:-100svh;
+    position:relative;
+    z-index:2;
+    pointer-events:none;
+  }
+
+  /* ================================================================
+     4. GABARIT 39 / 22 / 39
+     La colonne d'eau tient 22% de la largeur, au centre exact. Les
+     deux marges de 39% restent nues : c'est la que le texte se pose,
+     jamais sur la chute.
+     ================================================================ */
   .panel{
     position:absolute;
     width:34%;
-    max-width:420px;
+    max-width:440px;
     pointer-events:auto;
+    will-change:opacity,transform;
   }
-  .panel.left{left:3vw;text-align:left}
-  .panel.right{right:3vw;text-align:right}
+  .panel.left{left:var(--gutter)}
+  .panel.right{right:var(--gutter);text-align:right}
+  .panel.right .eyebrow{flex-direction:row-reverse}
+  .panel.right .body{margin-left:auto}
 
-  .panel h2{
-    font-family:"Amatic SC",cursive;
-    font-weight:700;
-    font-size:clamp(2.6rem,5.2vw,4.4rem);
-    line-height:.92;
-    letter-spacing:.01em;
-    color:var(--granite-deep);
-    margin-bottom:.5rem;
-  }
-  .panel p{
-    font-size:clamp(.95rem,1.15vw,1.08rem);
-    line-height:1.62;
-    color:#565b59;
-    max-width:34ch;
-  }
-  .panel.right p{margin-left:auto}
+  #b1{top:120svh}
+  #b2{top:215svh}
+  #b3{top:310svh}
+  #b4{top:405svh}
 
-  .tag{
-    display:inline-block;
-    font-size:.72rem;
-    font-weight:900;
-    letter-spacing:.14em;
+  /* ouverture et cloture : pleine hauteur, calees sur la camera. */
+  .act{
+    position:absolute;
+    left:var(--gutter);
+    width:44%;
+    max-width:560px;
+    height:100vh;height:100svh;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    pointer-events:auto;
+    will-change:opacity,transform;
+  }
+  #b0{top:0}
+  #b5{top:460svh}
+
+  .cue{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:.85rem;
+    margin-top:2.6rem;
+    font-size:.66rem;
+    font-weight:500;
+    letter-spacing:.2em;
     text-transform:uppercase;
-    color:var(--water-deep);
-    border:2px solid var(--water);
-    border-radius:15px;      /* le rayon de bruno-simon.com */
-    padding:.42rem .85rem;
-    margin-bottom:1rem;
+    color:var(--ink-soft);
+  }
+  .cue .track{position:relative;width:1px;height:46px;background:var(--line);overflow:hidden}
+  .cue .track::after{
+    content:"";position:absolute;left:0;top:0;width:1px;height:15px;
+    background:var(--accent);
+    animation:drip 2.3s var(--ease) infinite;
+  }
+  @keyframes drip{
+    0%{transform:translateY(-110%)}
+    100%{transform:translateY(320%)}
   }
 
-  /* placement vertical des blocs le long du scroll */
-  #b1{top:14svh}
-  #b2{top:120svh}
-  #b3{top:236svh}
-  #b4{top:348svh}
+  .colophon{
+    margin-top:2.4rem;
+    padding-top:1.1rem;
+    border-top:1px solid var(--line);
+    display:flex;
+    flex-wrap:wrap;
+    gap:.5rem 1.4rem;
+    font-size:.66rem;
+    font-weight:500;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  .colophon kbd{
+    font:inherit;
+    color:var(--accent);
+    border:1px solid var(--line);
+    border-radius:2px;
+    padding:.1rem .34rem;
+    margin-right:.3rem;
+  }
 
-  /* ---- bandeau de debug : montre le gabarit 22 / 39 ---- */
+  /* ================================================================
+     5. CHROME FIXE
+     ================================================================ */
+  #masthead{
+    position:fixed;left:0;right:0;top:0;z-index:4;
+    display:flex;align-items:baseline;justify-content:space-between;
+    gap:1.5rem;
+    padding:1.45rem var(--gutter);
+    pointer-events:none;
+  }
+  #masthead::before{
+    content:"";position:absolute;left:0;right:0;top:0;bottom:-70px;z-index:-1;
+    background:linear-gradient(180deg,var(--paper) 0%,rgba(248,245,239,.74) 42%,transparent 100%);
+  }
+  .wordmark{
+    font-family:"Fraunces",Georgia,serif;
+    font-variation-settings:"opsz" 24,"SOFT" 20,"WONK" 0;
+    font-weight:500;
+    font-size:1.04rem;
+    letter-spacing:.005em;
+  }
+  .masthead-meta{
+    font-size:.64rem;
+    font-weight:500;
+    letter-spacing:.17em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    text-align:right;
+  }
+
+  #progress{
+    position:fixed;left:0;right:0;bottom:0;z-index:4;
+    height:2px;
+    background:rgba(34,31,28,.09);
+    pointer-events:none;
+  }
+  #progress i{
+    display:block;height:100%;width:100%;
+    background:var(--accent);
+    transform:scaleX(0);
+    transform-origin:0 50%;
+  }
+
+  /* ================================================================
+     6. GABARIT DE CONTROLE (touche G)
+     ================================================================ */
   #guides{
-    position:fixed;inset:0;z-index:2;pointer-events:none;
+    position:fixed;inset:0;z-index:3;pointer-events:none;
     display:none;
+    font-size:.6rem;font-weight:500;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--accent);
   }
-  #guides.on{display:block}
-  #guides span{
-    position:absolute;top:0;bottom:0;
-    border-left:1px dashed rgba(199,21,21,.55);
-  }
-  #guides span:nth-child(1){left:39%}
-  #guides span:nth-child(2){left:61%}
-  #guides b{
-    position:absolute;left:39%;width:22%;top:0;bottom:0;
-    background:rgba(127,198,194,.13);
+  #guides[data-on]{display:block}
+  /* chaque repere porte sa position : pas de selecteur positionnel, qui
+     compterait les <span> par type et non par classe. */
+  #guides .edge,#guides .band,#guides .mark{position:absolute;left:var(--x)}
+  #guides .edge{top:0;bottom:0;width:1px;background:rgba(36,106,108,.42)}
+  #guides .band{top:0;bottom:0;width:22%;background:rgba(36,106,108,.075)}
+  #guides .mark{
+    top:50%;
+    transform:translate(-50%,-50%);
+    background:var(--paper);
+    padding:.2rem .45rem;
+    white-space:nowrap;
   }
 
-  #tools{
-    position:fixed;right:14px;bottom:14px;z-index:3;
-    display:flex;gap:8px;
+  /* ================================================================
+     7. ADAPTATIONS
+     ================================================================ */
+  /* la scene n'a pas pu se charger : le texte reprend le papier a son
+     compte pour rester lisible, au lieu de flotter sur un vide blanc. */
+  .no-3d #veil::after{display:none}
+  .no-3d .panel,.no-3d .act-inner{
+    background:none;
+    backdrop-filter:none;
+    -webkit-backdrop-filter:none;
+    border:0;
+    padding:0;
   }
-  #tools button{
-    font-family:"Nunito",sans-serif;font-weight:700;font-size:.72rem;
-    letter-spacing:.1em;text-transform:uppercase;
-    background:var(--granite-deep);color:var(--sand-light);
-    border:0;border-radius:15px;padding:.6rem 1rem;cursor:pointer;
-  }
-  #tools button:hover{background:var(--ink)}
 
-  @media (max-width:760px){
-    .panel{width:86%;left:7vw;right:auto;text-align:left}
-    .panel.right p{margin-left:0}
+  @media (max-width:900px){
+    :root{--gutter:6vw}
+    .panel{width:60%}
+    .act{width:72%}
   }
+
+  @media (max-width:700px){
+    .panel,.act{
+      width:88%;
+      left:var(--gutter);
+      right:auto;
+      text-align:left;
+    }
+    /* en portrait les marges nues disparaissent : le texte se pose sur
+       la scene. Il reprend donc le papier a son compte, en carte depolie
+       plutot qu'en bloc opaque, pour que la chute reste devinable
+       derriere. L'enveloppe .act-inner evite de depolir les 100svh du
+       conteneur, ce qui masquerait toute la scene. */
+    .panel,.act-inner{
+      padding:1.4rem 1.5rem 1.6rem;
+      background:rgba(248,245,239,.8);
+      backdrop-filter:blur(14px) saturate(115%);
+      -webkit-backdrop-filter:blur(14px) saturate(115%);
+      border:1px solid rgba(34,31,28,.08);
+      border-radius:3px;
+    }
+    .panel.right{text-align:left}
+    .panel.right .eyebrow{flex-direction:row}
+    .panel.right .body{margin-left:0}
+    .masthead-meta{display:none}
+  }
+
   @media (prefers-reduced-motion:reduce){
     html{scroll-behavior:auto}
+    .cue .track::after{animation:none;height:46px;opacity:.5}
+    .panel,.act{transform:none !important}
   }
 </style>
 </head>
 <body>
 
-<div id="stage"><canvas id="c"></canvas></div>
+<header id="masthead">
+  <div class="wordmark">Cascade</div>
+  <p class="masthead-meta">Étude de palette<br>24 teintes, une texture</p>
+</header>
 
-<div id="scroller">
-  <div class="panel left"  id="b1">
-    <span class="tag">Source</span>
-    <h2>La cascade<br>commence en haut</h2>
-    <p>Une colonne d'eau unique, posee au centre exact du cadre. Tout le reste est du sable nu — l'espace est la matiere principale, pas le decor.</p>
-  </div>
+<div id="stage"><canvas id="c" aria-hidden="true"></canvas></div>
+<div id="veil" aria-hidden="true"></div>
 
-  <div class="panel right" id="b2">
-    <span class="tag">Granit</span>
-    <h2>Neuf paliers<br>de pierre</h2>
-    <p>Chaque palier elargit la chute. La mousse s'accroche aux aretes, les fougeres poussent dans les angles ombrages.</p>
-  </div>
+<main id="scroller">
 
-  <div class="panel left"  id="b3">
-    <span class="tag">Verre</span>
-    <h2>Une sphere<br>et un anneau</h2>
-    <p>Deux objets transparents interrompent la chute. La sphere reflechit la vallee, l'anneau laisse l'eau le traverser.</p>
-  </div>
+  <section class="act" id="b0">
+    <div class="act-inner">
+    <p class="eyebrow"><span class="rule"></span>Trois dimensions, deux cents octets</p>
+    <h1>Une cascade<br>lue dans<br>128 pixels</h1>
+    <p class="lede">Aucun matériau de cette scène ne porte de couleur. Chaque surface pointe vers une coordonnée dans une bande de 128 pixels de large, et le processeur graphique y lit sa teinte.</p>
+    <div class="cue">
+      <span>Descendre</span>
+      <span class="track"></span>
+    </div>
+    </div>
+  </section>
 
-  <div class="panel right" id="b4">
-    <span class="tag">Bassin</span>
-    <h2>Et finit<br>en turquoise</h2>
-    <p>L'eau se rassemble dans un bassin translucide, a peine plus large que la colonne qui l'a remplie.</p>
-  </div>
+  <article class="panel left" id="b1">
+    <p class="eyebrow"><span class="num">01</span><span class="rule"></span>Source</p>
+    <h2>La cascade commence en haut</h2>
+    <p class="body">Une colonne d’eau unique, posée au centre exact du cadre. Tout le reste est du sable nu&nbsp;: l’espace est la matière principale, pas le décor.</p>
+  </article>
+
+  <article class="panel right" id="b2">
+    <p class="eyebrow"><span class="num">02</span><span class="rule"></span>Granit</p>
+    <h2>Neuf paliers de pierre</h2>
+    <p class="body">Chaque palier élargit la chute. La mousse s’accroche aux arêtes, les fougères poussent dans les angles ombragés.</p>
+  </article>
+
+  <article class="panel left" id="b3">
+    <p class="eyebrow"><span class="num">03</span><span class="rule"></span>Verre</p>
+    <h2>Une sphère et un anneau</h2>
+    <p class="body">Deux objets transparents interrompent la chute. La sphère réfléchit la vallée, l’anneau laisse l’eau le traverser.</p>
+  </article>
+
+  <article class="panel right" id="b4">
+    <p class="eyebrow"><span class="num">04</span><span class="rule"></span>Bassin</p>
+    <h2>Et finit en turquoise</h2>
+    <p class="body">L’eau se rassemble dans un bassin translucide, à peine plus large que la colonne qui l’a remplie.</p>
+  </article>
+
+  <section class="act" id="b5">
+    <div class="act-inner">
+    <p class="eyebrow"><span class="rule"></span>Colophon</p>
+    <h2>Une texture, un matériau, un seul appel de rendu</h2>
+    <p class="body">Le gabarit tient à tous les ratios&nbsp;: la distance de caméra est recalculée à chaque redimensionnement pour que la colonne occupe toujours 22&nbsp;% de la largeur visible.</p>
+    <p class="colophon">
+      <span><kbd>G</kbd>Gabarit</span>
+      <span><kbd>S</kbd>Export PNG</span>
+      <span>Fraunces &amp; Inter</span>
+    </p>
+    </div>
+  </section>
+
+</main>
+
+<div id="guides" aria-hidden="true">
+  <span class="edge" style="--x:39%"></span><span class="edge" style="--x:61%"></span>
+  <span class="band" style="--x:39%"></span>
+  <span class="mark" style="--x:19.5%">39&nbsp;%</span>
+  <span class="mark" style="--x:50%">22&nbsp;%</span>
+  <span class="mark" style="--x:80.5%">39&nbsp;%</span>
 </div>
 
-<div id="guides"><span></span><span></span><b></b></div>
-<div id="tools">
-  <button id="toggle" type="button">gabarit 22 / 39</button>
-  <button id="export" type="button">exporter png</button>
-</div>
+<div id="progress" aria-hidden="true"><i></i></div>
+
+<!-- ------------------------------------------------------------------
+     INTERFACE
+     Ce module ne depend de rien. Il lit le scroll, le lisse une seule
+     fois, et publie la valeur sur window.cascade : la scene 3D se
+     contente de la consommer. Si le CDN de three.js tombe, la page
+     reste composee, lisible et parcourable.
+     ------------------------------------------------------------------ -->
+<script type="module">
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* etat partage avec la scene. progress reste null jusqu'a la premiere
+   image : au rechargement le navigateur restaure la position de scroll,
+   et la camera doit s'y poser directement au lieu de redescendre. */
+const cascade = window.cascade = { progress: null, target: 0, reduced };
+
+const blocks = [...document.querySelectorAll('.panel,.act')].map(el => ({ el, mid: 0 }));
+const bar = document.querySelector('#progress i');
+const root = document.documentElement;
+
+let viewport = innerHeight;
+
+function measure() {
+  viewport = innerHeight;
+  const origin = scrollY;
+  for (const b of blocks) {
+    const r = b.el.getBoundingClientRect();
+    b.mid = r.top + origin + r.height / 2;
+  }
+}
+
+function readScroll() {
+  const max = root.scrollHeight - viewport;
+  cascade.target = max > 0 ? Math.min(Math.max(scrollY / max, 0), 1) : 0;
+}
+
+/* opacite = distance du bloc au centre du cadre, adoucie. Les textes se
+   croisent au lieu d'apparaitre : le fondu est la meme horloge que la
+   camera, donc jamais desynchronise. */
+const FADE = 0.56;
+
+function paintBlocks() {
+  const centre = scrollY + viewport / 2;
+  for (const b of blocks) {
+    const d = (b.mid - centre) / viewport;
+    const k = Math.min(Math.max(1 - Math.abs(d) / FADE, 0), 1);
+    const eased = k * k * (3 - 2 * k);
+    b.el.style.opacity = eased.toFixed(3);
+    if (!reduced) b.el.style.transform = `translate3d(0,${(d * 30).toFixed(2)}px,0)`;
+  }
+}
+
+function tick() {
+  if (cascade.progress === null) cascade.progress = cascade.target;
+  else cascade.progress += (cascade.target - cascade.progress) * (reduced ? 1 : 0.085);
+
+  bar.style.transform = `scaleX(${cascade.progress})`;
+  paintBlocks();
+  requestAnimationFrame(tick);
+}
+
+addEventListener('resize', () => { measure(); readScroll(); });
+addEventListener('scroll', readScroll, { passive: true });
+
+measure();
+readScroll();
+tick();
+
+/* les deux outils de l'etude, au clavier : ils ne prennent plus de
+   place dans la composition. */
+const guides = document.getElementById('guides');
+addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const k = e.key.toLowerCase();
+  if (k === 'g') guides.toggleAttribute('data-on');
+  if (k === 's') window.cascade.exportPNG?.();
+});
+
+/* filet de securite : si le module 3D n'a pas signe au bout de 3 s,
+   on bascule la page en mode papier. */
+setTimeout(() => {
+  if (!root.classList.contains('has-3d')) root.classList.add('no-3d');
+}, 3000);
+</script>
 
 <script type="importmap">
 {
@@ -168,13 +516,12 @@ import * as THREE from 'three';
 
 /* ------------------------------------------------------------------ *
  * 1. LA TEXTURE DE DESIGN
- *    Un PNG de 128x4 pixels, 200 octets, 24 teintes.
- *    C'est le meme principe exact que palette.png sur bruno-simon.com.
+ *    Un PNG de 128x4 pixels, 195 octets, 24 teintes.
  *    Aucun materiau ne porte de couleur : chaque geometrie pointe vers
  *    une coordonnee U dans cette bande, et le GPU y lit sa teinte.
  *    Une seule texture, un seul materiau, un seul draw call par groupe.
  * ------------------------------------------------------------------ */
-const PALETTE_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAAAECAIAAADJfaBSAAAAj0lEQVR4nGP8/vkVAwx8//wGzv7w5gWc/ezxfTj72uv/cPaDew/g7Dt378LZd+8g2K2L5sHZx9++g7NP3HiIMOfsRTi7KUwMzr506wbC3uuPEepvIszZPHsjnP38zSeEmicI94d4OsLZDMdr4MynjyfC2e61CHuv3rrHQC/ARDebRgFWMBoBAwxGI4BhYAEAdSU3CL7egiAAAAAASUVORK5CYII=';
+const PALETTE_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAAAECAIAAADJfaBSAAAAiklEQVR42mP48fU9HL1/eQeO7l87BEfHdy+Co0kzpsFRUUUZHIXFRMGRlYMdHL369hmO+s6fgCO7WbPhSLuoBI6W7emBo7rpWXAUVxUER47h1nB069pZONq3dxsczV84B47+I4Er7dFwdG9dBBxpqavAkYgQPxwhhw8tEMNoBIxGwGgEjEbAwEUAAFS8Cj3Dwmh3AAAAAElFTkSuQmCC';
 
 /* ordre des swatches dans la bande (4 px chacun) */
 const SWATCHES = [
@@ -195,8 +542,10 @@ palette.minFilter = THREE.NearestFilter;
 palette.generateMipmaps = false;
 palette.colorSpace = THREE.SRGBColorSpace;
 
-/* degrade a 3 paliers : la lumiere devient des bandes, pas un fondu */
-const steps = new Uint8Array([90, 160, 235, 255]);
+/* degrade a 4 paliers : la lumiere devient des bandes, pas un fondu.
+   Les deux paliers bas sont rapproches pour que les ombres du granit
+   restent dans les gris de la palette au lieu de virer au noir. */
+const steps = new Uint8Array([112, 172, 232, 255]);
 const gradientMap = new THREE.DataTexture(steps, steps.length, 1, THREE.RedFormat);
 gradientMap.magFilter = THREE.NearestFilter;
 gradientMap.minFilter = THREE.NearestFilter;
@@ -204,8 +553,8 @@ gradientMap.needsUpdate = true;
 
 const MAT = new THREE.MeshToonMaterial({ map: palette, gradientMap });
 const MAT_GLASS = new THREE.MeshPhysicalMaterial({
-  color: 0xffffff, transmission: .92, thickness: .55, roughness: .08,
-  ior: 1.42, transparent: true, opacity: .9
+  color: 0xffffff, transmission: .95, thickness: .5, roughness: .05,
+  ior: 1.45, transparent: true, opacity: .92
 });
 
 /* ------------------------------------------------------------------ *
@@ -225,23 +574,25 @@ function mesh(geometry, swatch, mat = MAT) {
 /* ------------------------------------------------------------------ *
  * 3. scene
  * ------------------------------------------------------------------ */
+const PAPER = 0xf8f5ef;   /* identique a --paper : le canvas et le DOM
+                             partagent exactement le meme fond. */
 const canvas = document.getElementById('c');
 /* preserveDrawingBuffer : le navigateur garde la derniere image rendue,
-   ce qui permet d'exporter la vue courante en PNG (bouton en bas a droite).
-   Cette image sert directement de reference de structure pour Firefly :
-   le gabarit 22 / 39 est deja respecte, il n'y a rien a recadrer. */
+   ce qui permet d'exporter la vue courante en PNG (touche S). */
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xf7f3ea);
-scene.fog = new THREE.Fog(0xf7f3ea, 26, 72);
+scene.background = new THREE.Color(PAPER);
+/* la brume commence plus loin et finit plus loin : les montagnes se
+   dissolvent dans le papier sans emporter le granit avec elles. */
+scene.fog = new THREE.Fog(PAPER, 30, 86);
 
 const camera = new THREE.PerspectiveCamera(35, 1, .1, 200);
 
-const key = new THREE.DirectionalLight(0xfff3e6, 2.1);
+const key = new THREE.DirectionalLight(0xfff5e8, 2.0);
 key.position.set(-7, 14, 9);
 key.castShadow = true;
 key.shadow.mapSize.set(1024, 1024);
@@ -251,8 +602,9 @@ key.shadow.camera.left = -14;
 key.shadow.camera.right = 14;
 key.shadow.camera.top = 20;
 key.shadow.camera.bottom = -20;
+key.shadow.bias = -0.0008;
 scene.add(key);
-scene.add(new THREE.HemisphereLight(0xffffff, 0xded2be, 1.25));
+scene.add(new THREE.HemisphereLight(0xffffff, 0xe3d9c7, 1.3));
 
 /* --- sable : le fond nu qui occupe 78% de la largeur --- */
 const ground = mesh(new THREE.PlaneGeometry(220, 220, 1, 1), 'sand');
@@ -386,8 +738,9 @@ function resize() {
 
   const halfFov = THREE.MathUtils.degToRad(camera.fov) / 2;
   let visibleWidth = TARGET_VISIBLE_WIDTH;
-  /* en portrait on relache un peu, sinon la colonne devient illisible */
-  if (camera.aspect < 1) visibleWidth = CASCADE_WIDTH / 0.40;
+  /* en portrait les marges se referment : le texte passe en carte posee
+     sur la scene, la colonne peut donc respirer jusqu'a 38%. */
+  if (camera.aspect < 1) visibleWidth = CASCADE_WIDTH / 0.38;
   camDist = visibleWidth / (2 * Math.tan(halfFov) * camera.aspect);
 
   camera.updateProjectionMatrix();
@@ -395,22 +748,13 @@ function resize() {
 
 /* ------------------------------------------------------------------ *
  * 5. le scroll descend la camera le long de la chute
+ *    La valeur vient du module d'interface : une seule horloge pour le
+ *    fondu des textes, la barre de progression et la camera.
  * ------------------------------------------------------------------ */
-/* progress = null tant que la premiere image n'est pas rendue : au
-   rechargement le navigateur restaure la position de scroll, et la camera
-   doit s'y poser directement au lieu de redescendre depuis le sommet. */
-let progress = null, target = 0;
-
-function readScroll() {
-  const max = document.documentElement.scrollHeight - innerHeight;
-  target = max > 0 ? THREE.MathUtils.clamp(scrollY / max, 0, 1) : 0;
-}
-
-const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const view = window.cascade;
 
 function frame() {
-  if (progress === null) progress = target;
-  else progress += (target - progress) * (reduced ? 1 : 0.085);
+  const progress = view.progress ?? 0;
 
   const camY = THREE.MathUtils.lerp(TOP_Y + 3.4, BOTTOM_Y + 1.2, progress);
   const lookY = THREE.MathUtils.lerp(TOP_Y - 1.2, BOTTOM_Y - 1.4, progress);
@@ -425,31 +769,27 @@ function frame() {
   requestAnimationFrame(frame);
 }
 
-addEventListener('resize', () => { resize(); readScroll(); });
-addEventListener('scroll', readScroll, { passive: true });
+addEventListener('resize', resize);
 new ResizeObserver(resize).observe(canvas);
 resize();
-readScroll();
 frame();
 
-/* ---- gabarit de controle ---- */
-const guides = document.getElementById('guides');
-document.getElementById('toggle').addEventListener('click', () => {
-  guides.classList.toggle('on');
-});
-
-/* export de la vue courante : reference de structure prete pour Firefly */
-document.getElementById('export').addEventListener('click', () => {
+/* export de la vue courante : reference de structure prete a reutiliser,
+   le gabarit 22 / 39 est deja respecte, il n'y a rien a recadrer. */
+view.exportPNG = () => {
   renderer.render(scene, camera);            // image fraiche avant lecture
   canvas.toBlob(blob => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `cascade-structure-${Math.round(progress * 100)}.png`;
+    a.download = `cascade-structure-${Math.round((view.progress ?? 0) * 100)}.png`;
     a.click();
     URL.revokeObjectURL(url);
   }, 'image/png');
-});
+};
+
+/* la scene a signe : l'interface laisse tomber son filet de securite. */
+document.documentElement.classList.add('has-3d');
 </script>
 </body>
 </html>
