@@ -516,12 +516,12 @@ import * as THREE from 'three';
 
 /* ------------------------------------------------------------------ *
  * 1. LA TEXTURE DE DESIGN
- *    Un PNG de 128x4 pixels, 195 octets, 24 teintes.
+ *    Un PNG de 128x4 pixels, 196 octets, 24 teintes.
  *    Aucun materiau ne porte de couleur : chaque geometrie pointe vers
  *    une coordonnee U dans cette bande, et le GPU y lit sa teinte.
  *    Une seule texture, un seul materiau, un seul draw call par groupe.
  * ------------------------------------------------------------------ */
-const PALETTE_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAAAECAIAAADJfaBSAAAAiklEQVR42mP48fU9HL1/eQeO7l87BEfHdy+Co0kzpsFRUUUZHIXFRMGRlYMdHL369hmO+s6fgCO7WbPhSLuoBI6W7emBo7rpWXAUVxUER47h1nB069pZONq3dxsczV84B47+I4Er7dFwdG9dBBxpqavAkYgQPxwhhw8tEMNoBIxGwGgEjEbAwEUAAFS8Cj3Dwmh3AAAAAElFTkSuQmCC';
+const PALETTE_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAAAECAIAAADJfaBSAAAAi0lEQVR42mP48fU9HL1/eQeO7l87BEfHdy+Coz0H9sDRstXL4ah/Sj8clVaVwdGrb5/hqO/8CTiymzUbjrSLSuBo2Z4eOKqbngVHcVVBcOQYbg1HTx7egqPzZ4/B0bYdm+HoPxK40h4NR/fWRcCRlroKHIkI8cMRcvjQAjGMRsBoBIxGwGgEDFwEAACunDntM4nkgwAAAABJRU5ErkJggg==';
 
 /* ordre des swatches dans la bande (4 px chacun) */
 const SWATCHES = [
@@ -543,9 +543,9 @@ palette.generateMipmaps = false;
 palette.colorSpace = THREE.SRGBColorSpace;
 
 /* degrade a 4 paliers : la lumiere devient des bandes, pas un fondu.
-   Les deux paliers bas sont rapproches pour que les ombres du granit
-   restent dans les gris de la palette au lieu de virer au noir. */
-const steps = new Uint8Array([112, 172, 232, 255]);
+   Le palier bas est haut (150/255) : en dessous, le granit tombe dans un
+   charbon qui ecrase le registre clair de toute la page. */
+const steps = new Uint8Array([150, 196, 234, 255]);
 const gradientMap = new THREE.DataTexture(steps, steps.length, 1, THREE.RedFormat);
 gradientMap.magFilter = THREE.NearestFilter;
 gradientMap.minFilter = THREE.NearestFilter;
@@ -586,14 +586,17 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(PAPER);
-/* la brume commence plus loin et finit plus loin : les montagnes se
-   dissolvent dans le papier sans emporter le granit avec elles. */
-scene.fog = new THREE.Fog(PAPER, 30, 86);
+/* la brume reprend tot : les montagnes doivent se dissoudre dans le
+   papier et rester un fond, pas decouper l'horizon derriere le texte. */
+scene.fog = new THREE.Fog(PAPER, 24, 70);
 
 const camera = new THREE.PerspectiveCamera(35, 1, .1, 200);
 
-const key = new THREE.DirectionalLight(0xfff5e8, 2.0);
-key.position.set(-7, 14, 9);
+/* cle haute et peu intense, ambiante genereuse : une cle basse et forte
+   projetait une ombre dure jusque dans la marge droite, la ou le texte
+   se pose aux sections 02 et 04. */
+const key = new THREE.DirectionalLight(0xfff5e8, 1.72);
+key.position.set(-6, 17, 8);
 key.castShadow = true;
 key.shadow.mapSize.set(1024, 1024);
 key.shadow.camera.near = 1;
@@ -604,7 +607,7 @@ key.shadow.camera.top = 20;
 key.shadow.camera.bottom = -20;
 key.shadow.bias = -0.0008;
 scene.add(key);
-scene.add(new THREE.HemisphereLight(0xffffff, 0xe3d9c7, 1.3));
+scene.add(new THREE.HemisphereLight(0xffffff, 0xe3d9c7, 1.58));
 
 /* --- sable : le fond nu qui occupe 78% de la largeur --- */
 const ground = mesh(new THREE.PlaneGeometry(220, 220, 1, 1), 'sand');
