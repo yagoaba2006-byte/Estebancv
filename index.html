@@ -396,8 +396,8 @@
   <section class="act" id="b5">
     <div class="act-inner">
     <p class="eyebrow"><span class="rule"></span>Colophon</p>
-    <h2>Une texture, un matériau, un seul appel de rendu</h2>
-    <p class="body">Le gabarit tient à tous les ratios&nbsp;: la distance de caméra est recalculée à chaque redimensionnement pour que la colonne occupe toujours 22&nbsp;% de la largeur visible.</p>
+    <h2>Trente mille faces, trois géométries</h2>
+    <p class="body">La roche, l’eau, la mousse et les fougères sont fondues en trois géométries avant le premier rendu. Le gabarit, lui, tient à tous les ratios&nbsp;: la distance de caméra est recalculée à chaque redimensionnement pour que la colonne occupe toujours 22&nbsp;% de la largeur visible.</p>
     <p class="colophon">
       <span><kbd>G</kbd>Gabarit</span>
       <span><kbd>S</kbd>Export PNG</span>
@@ -513,6 +513,7 @@ setTimeout(() => {
 
 <script type="module">
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 /* ------------------------------------------------------------------ *
  * 1. LA TEXTURE DE DESIGN
@@ -552,23 +553,208 @@ gradientMap.minFilter = THREE.NearestFilter;
 gradientMap.needsUpdate = true;
 
 const MAT = new THREE.MeshToonMaterial({ map: palette, gradientMap });
+/* le verre : transmission pure, sans 'transparent + opacity' qui la
+   delavait et rendait la sphere opaque. L'attenuation prend la teinte
+   'water' de la bande, le vernis lui donne une arete lumineuse. */
 const MAT_GLASS = new THREE.MeshPhysicalMaterial({
-  color: 0xffffff, transmission: .95, thickness: .5, roughness: .05,
-  ior: 1.45, transparent: true, opacity: .92
+  color: 0xffffff,
+  transmission: 1,
+  roughness: .1,
+  ior: 1.45,
+  metalness: 0,
+  attenuationColor: new THREE.Color(0x8ecfc8),
+  /* devant un fond uniforme, un verre parfaitement clair ne se voit pas :
+     il faut un peu de teinte accumulee dans l'epaisseur. Trop peu et il
+     disparait, trop et il tourne au jade massif. */
+  attenuationDistance: 2.9,
+  thickness: 1.0,
+  clearcoat: 1,
+  clearcoatRoughness: .06,
+  specularIntensity: 1,
+  envMapIntensity: 1.5,
 });
 
 /* ------------------------------------------------------------------ *
- * 2. assigner une teinte = reecrire les UV de la geometrie
+ * 2. ATELIER DE GEOMETRIE
+ *    Trois regles tiennent tout le relief :
+ *    - une teinte = une coordonnee U reecrite sur toute la geometrie ;
+ *    - un sommet se deplace selon sa POSITION, jamais selon son index.
+ *      Les sommets dupliques sur une couture recoivent ainsi le meme
+ *      decalage et la maille ne se fend pas ;
+ *    - tout est desindexe avant le calcul des normales, ce qui donne
+ *      une normale par face : les facettes restent franches.
  * ------------------------------------------------------------------ */
-function paint(geometry, swatch) {
-  const uv = geometry.attributes.uv;
-  const u = U[swatch];
-  for (let i = 0; i < uv.count; i++) uv.setXY(i, u, 0.5);
-  uv.needsUpdate = true;
-  return geometry;
+
+/* aleatoire reproductible : la composition doit etre identique a chaque
+   chargement, sinon ce n'est plus un dessin mais un tirage. */
+function mulberry32(a) {
+  return function () {
+    a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
 }
-function mesh(geometry, swatch, mat = MAT) {
-  return new THREE.Mesh(paint(geometry, swatch), mat);
+const rnd = mulberry32(0x5EED);
+const rr = (a, b) => a + (b - a) * rnd();
+const pick = arr => arr[Math.floor(rnd() * arr.length)];
+
+/* hachage de position : du bruit par sommet, anguleux, qui convient au
+   facettage. Deterministe, donc sans fissure sur les coutures. */
+function hash3(x, y, z) {
+  const s = Math.sin(x * 12.9898 + y * 78.233 + z * 37.719) * 43758.5453;
+  return s - Math.floor(s);
+}
+const noise3 = (x, y, z) => hash3(x, y, z) * 2 - 1;
+
+function displace(geo, fn) {
+  const p = geo.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+    const d = fn(x, y, z);
+    p.setXYZ(i, x + d[0], y + d[1], z + d[2]);
+  }
+  return geo;
+}
+
+/* surface parametrique, produite deja desindexee */
+function sheet(cols, rows, fn) {
+  const pos = [];
+  for (let j = 0; j < rows; j++) {
+    for (let i = 0; i < cols; i++) {
+      const u0 = i / cols, u1 = (i + 1) / cols;
+      const v0 = j / rows, v1 = (j + 1) / rows;
+      const a = fn(u0, v0), b = fn(u1, v0), c = fn(u1, v1), d = fn(u0, v1);
+      pos.push(a[0], a[1], a[2], b[0], b[1], b[2], c[0], c[1], c[2]);
+      pos.push(a[0], a[1], a[2], c[0], c[1], c[2], d[0], d[1], d[2]);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  return g;
+}
+
+/* --- les trois lots. Rien n'est un objet de scene : chaque pièce est
+       posee dans le monde puis versee dans un lot, et les lots sont
+       fondus en trois geometries avant le premier rendu. --- */
+const PARTS = { near: [], far: [], ground: [] };
+const _mat = new THREE.Matrix4();
+const _pos = new THREE.Vector3();
+const _qua = new THREE.Quaternion();
+const _eul = new THREE.Euler();
+const _scl = new THREE.Vector3();
+
+function part(geo, swatch, opt = {}) {
+  const { pos = [0, 0, 0], rot = [0, 0, 0], scale = 1, lot = 'near' } = opt;
+  const s = Array.isArray(scale) ? scale : [scale, scale, scale];
+
+  const g = geo.index ? geo.toNonIndexed() : geo;
+  for (const name of Object.keys(g.attributes)) {
+    if (name !== 'position') g.deleteAttribute(name);
+  }
+  const n = g.attributes.position.count;
+  const uv = new Float32Array(n * 2);
+  const u = U[swatch];
+  for (let i = 0; i < n; i++) { uv[i * 2] = u; uv[i * 2 + 1] = 0.5; }
+  g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+
+  _eul.set(rot[0], rot[1], rot[2]);
+  _mat.compose(_pos.set(pos[0], pos[1], pos[2]),
+               _qua.setFromEuler(_eul),
+               _scl.set(s[0], s[1], s[2]));
+  g.applyMatrix4(_mat);
+  g.computeVertexNormals();        // desindexe => une normale par face
+  PARTS[lot].push(g);
+  return g;
+}
+
+/* --- vocabulaire de formes --- */
+
+/* un eclat de roche : dodecaedre casse */
+function chunk() {
+  return displace(new THREE.DodecahedronGeometry(1, 0),
+    (x, y, z) => { const k = .32 * noise3(x * 4.1, y * 4.3, z * 4.7); return [x * k, y * k, z * k]; });
+}
+
+/* une touffe : icosaedre bossele, aplati par l'echelle a l'appel */
+function blob(detail = 1) {
+  return displace(new THREE.IcosahedronGeometry(1, detail),
+    (x, y, z) => { const k = .26 * noise3(x * 3.3, y * 3.7, z * 3.1); return [x * k, y * k, z * k]; });
+}
+
+/* une dalle de granit : disque irregulier, dessus praticable */
+function slab() {
+  return displace(new THREE.CylinderGeometry(1, .82, 1, 9, 3), (x, y, z) => {
+    const k = .15 * noise3(x * 3.1, y * 2.7, z * 3.3) + .07 * noise3(x * 7.7 + 4, y * 6.3, z * 8.1);
+    const plat = y > .34 ? .22 : 1;          // le dessus reste plan pour l'eau
+    return [x * k, .1 * noise3(x * 5, y * 9, z * 5) * plat, z * k];
+  });
+}
+
+/* la nappe d'eau : une lame large et mince. Une section ronde donnait
+   un tube opaque, une colonne de bougie ; l'eau qui tombe est une
+   surface, pas un volume. Epaisseur = 16% de la largeur, et la lame
+   derive vers le palier suivant au lieu de tomber a la verticale. */
+function nappe(wTop, wBot, fall, derX, derZ) {
+  return sheet(14, 16, (u, v) => {
+    const w = wTop + (wBot - wTop) * v;
+    const t = w * .16 * (1 - .3 * v);
+    const a = u * Math.PI * 2;
+    const creux = 1 - .22 * Math.cos(a) * Math.cos(a);
+    const ond = .022 * Math.sin(v * 11 + u * 7.5) + .015 * Math.sin(v * 23);
+    const chute = v * v * .25 + v * .75;          // la lame accelere
+    return [
+      Math.cos(a) * w * .5 + derX * chute + ond,
+      -chute * fall,
+      Math.sin(a) * t * .5 * creux + derZ * v * v + ond * .5,
+    ];
+  });
+}
+
+/* une foliole : cone triangulaire aplati, pre-oriente a la geometrie
+   pour eviter toute ambiguite d'ordre d'Euler */
+function leaf(len, wide, releve, lacet, pos, swatch) {
+  const g = new THREE.ConeGeometry(1, 1, 3, 1);
+  g.rotateZ(-Math.PI / 2);           // la pointe part vers +x
+  g.scale(len, len * .09, wide);
+  g.rotateZ(releve);
+  g.rotateY(lacet);
+  part(g, swatch, { pos });
+}
+
+/* une fougere : quelques frondes arquees, folioles de plus en plus
+   courtes vers la pointe */
+function fern(px, py, pz, taille, lacet) {
+  const frondes = 3 + Math.floor(rnd() * 2);
+  for (let f = 0; f < frondes; f++) {
+    const a = lacet + rr(-1, 1);
+    const len = taille * rr(.85, 1.3);
+    const n = 7 + Math.floor(rnd() * 3);
+    const teinte = rnd() < .5 ? 'fern' : 'foliageShade';
+    for (let k = 1; k <= n; k++) {
+      const s = k / n;
+      const dehors = len * .62 * s * s;
+      const haut = len * s * (1 - .28 * s);
+      const ls = taille * .52 * (1 - .5 * s);
+      leaf(ls, ls * .52, .9 - s * 1.45, a + rr(-.25, .25),
+           [px + Math.cos(a) * dehors, py + haut, pz + Math.sin(a) * dehors],
+           k === n ? 'fern' : teinte);
+    }
+  }
+}
+
+/* l'ecume d'un impact : une grappe de petits volumes blancs */
+function ecume(cx, cy, cz, etendue, n) {
+  for (let k = 0; k < n; k++) {
+    const a = rr(0, Math.PI * 2);
+    const d = etendue * Math.pow(rnd(), .6);
+    const s = etendue * rr(.11, .28);
+    part(blob(0), rnd() < .45 ? 'white' : 'foam', {
+      pos: [cx + Math.cos(a) * d, cy + rr(-.05, .45) * etendue, cz + Math.sin(a) * d * .7],
+      rot: [0, rr(0, 3), 0],
+      scale: [s, s * rr(.6, 1), s * rr(.7, 1.1)],
+    });
+  }
 }
 
 /* ------------------------------------------------------------------ *
@@ -582,13 +768,44 @@ const canvas = document.getElementById('c');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+/* PCFSoftShadowMap a ete retire de three 0.186 et retombait en silence
+   sur PCF en affichant un avertissement a chaque chargement. On demande
+   donc PCF directement, avec une carte plus fine pour compenser. */
+renderer.shadowMap.type = THREE.PCFShadowMap;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(PAPER);
 /* la brume reprend tot : les montagnes doivent se dissoudre dans le
    papier et rester un fond, pas decouper l'horizon derriere le texte. */
 scene.fog = new THREE.Fog(PAPER, 24, 70);
+
+/* un petit ciel equirectangulaire : un degrade sable -> papier, de quoi
+   donner au verre une arete et un reflet au lieu d'un disque plat. Le
+   materiau toon ignore les reflets, donc seuls les deux objets de verre
+   changent.
+   64x32 et non 1xN : une texture d'un pixel de large produit un PMREM
+   degenere dont le shader ne compile pas sur les pilotes stricts
+   (ANGLE / SwiftShader rejettent 'uv.y *= CUBEUV_TEXEL_HEIGHT'), et tout
+   MeshPhysicalMaterial de la scene disparait alors en silence. On laisse
+   aussi three filtrer lui-meme a l'affectation, sans PMREMGenerator. */
+{
+  const W = 64, H = 32, data = new Uint8Array(W * H * 4);
+  for (let y = 0; y < H; y++) {
+    const k = Math.pow(y / (H - 1), 1.4);            // 0 = sol, 1 = ciel
+    for (let x = 0; x < W; x++) {
+      const i = (y * W + x) * 4;
+      data[i + 0] = 214 + (252 - 214) * k;
+      data[i + 1] = 200 + (250 - 200) * k;
+      data[i + 2] = 176 + (245 - 176) * k;
+      data[i + 3] = 255;
+    }
+  }
+  const ciel = new THREE.DataTexture(data, W, H, THREE.RGBAFormat);
+  ciel.mapping = THREE.EquirectangularReflectionMapping;
+  ciel.colorSpace = THREE.SRGBColorSpace;
+  ciel.needsUpdate = true;
+  scene.environment = ciel;
+}
 
 const camera = new THREE.PerspectiveCamera(35, 1, .1, 200);
 
@@ -598,7 +815,7 @@ const camera = new THREE.PerspectiveCamera(35, 1, .1, 200);
 const key = new THREE.DirectionalLight(0xfff5e8, 1.72);
 key.position.set(-6, 17, 8);
 key.castShadow = true;
-key.shadow.mapSize.set(1024, 1024);
+key.shadow.mapSize.set(2048, 2048);
 key.shadow.camera.near = 1;
 key.shadow.camera.far = 50;
 key.shadow.camera.left = -14;
@@ -609,113 +826,237 @@ key.shadow.bias = -0.0008;
 scene.add(key);
 scene.add(new THREE.HemisphereLight(0xffffff, 0xe3d9c7, 1.58));
 
-/* --- sable : le fond nu qui occupe 78% de la largeur --- */
-const ground = mesh(new THREE.PlaneGeometry(220, 220, 1, 1), 'sand');
-ground.rotation.x = -Math.PI / 2;
-ground.position.y = -11;
-ground.receiveShadow = true;
-scene.add(ground);
+/* --- le sol : des dunes tres basses. Un plan mort ne donnait a l'ombre
+       portee aucune surface a epouser. --- */
+function dune(x, z) {
+  return Math.sin(x * .07) * .55 + Math.sin(z * .09 + 1.3) * .45
+       + Math.sin((x + z) * .041) * .8;
+}
+{
+  const g = new THREE.PlaneGeometry(240, 240, 56, 56);
+  /* avant rotation le plan est en XY : son +z deviendra la hauteur */
+  displace(g, (x, y) => [0, 0, dune(x, y)]);
+  part(g, 'sand', { rot: [-Math.PI / 2, 0, 0], pos: [0, -11, 0], lot: 'ground' });
+}
 
-/* --- montagnes floues, bord haut --- */
-const mountains = new THREE.Group();
-/* elles affleurent a peine la ligne d'horizon : les deux marges doivent
-   rester lisibles pour le texte, donc on les enfonce dans le sable. */
-[['mountainNear', 15, -40, 8], ['mountainFar', 21, -54, 11], ['mountainHaze', 27, -70, 14]]
-  .forEach(([swatch, spread, z, h]) => {
-    for (let i = -3; i <= 3; i++) {
-      const m = mesh(new THREE.ConeGeometry(h * .8, h, 5, 1), swatch);
-      m.position.set(i * spread * .42 + (i % 2 ? 2.5 : -2.5), -11 + h / 2 - h * .46, z);
-      m.rotation.y = i * .7;
-      m.scale.y = .72 + ((i * 37) % 11) / 22;
-      mountains.add(m);
+/* --- les montagnes : des cretes, pas des cones. Trois bandes de plus
+       en plus pales, que la brume finit de dissoudre. --- */
+function crete() {
+  return displace(new THREE.ConeGeometry(1, 1, 7, 3), (x, y, z) => {
+    const k = .26 * noise3(x * 2.3, y * 1.7, z * 2.1);
+    return [x * k, .09 * noise3(x * 4, y * 3.1, z * 4), z * k];
+  });
+}
+[['mountainNear', -42, 9, 7], ['mountainFar', -58, 12.5, 8], ['mountainHaze', -76, 16, 9]]
+  .forEach(([teinte, z, h, n]) => {
+    for (let i = 0; i < n; i++) {
+      const s = h * rr(.62, 1.15);
+      part(crete(), teinte, {
+        pos: [rr(-1, 1) * 46 + (i - n / 2) * 11, -11 + s * .46, z + rr(-7, 7)],
+        rot: [0, rr(0, Math.PI * 2), 0],
+        scale: [s * rr(.85, 1.5), s, s * rr(.85, 1.3)],
+        lot: 'far',
+      });
+      /* un contrefort accole, pour casser la silhouette triangulaire */
+      const s2 = s * rr(.4, .62);
+      part(crete(), teinte, {
+        pos: [rr(-1, 1) * 46 + (i - n / 2) * 11 + s * rr(-1, 1), -11 + s2 * .46, z + rr(-5, 5)],
+        rot: [0, rr(0, Math.PI * 2), 0],
+        scale: [s2 * rr(.9, 1.4), s2, s2],
+        lot: 'far',
+      });
     }
   });
-scene.add(mountains);
 
-/* --- la colonne : 9 paliers de granit qui s'elargissent --- */
-const CASCADE = new THREE.Group();
+/* ------------------------------------------------------------------ *
+ * 4. LA COLONNE
+ *    Neuf paliers qui s'elargissent. Chacun porte sa roche, son talus,
+ *    sa mousse, ses fougeres, sa nappe et son ecume.
+ * ------------------------------------------------------------------ */
 const TIERS = 9;
 const TOP_Y = 7.4, BOTTOM_Y = -9.2;
 
+/* geometrie d'un palier, calculee d'avance : la nappe a besoin de
+   connaitre le palier suivant pour deriver vers lui. */
+const paliers = [];
 for (let i = 0; i < TIERS; i++) {
   const t = i / (TIERS - 1);
-  const y = THREE.MathUtils.lerp(TOP_Y, BOTTOM_Y, t);
-  const w = THREE.MathUtils.lerp(1.05, 3.0, Math.pow(t, .78));
-  const d = w * .74;
-  const h = .62;
+  const r = THREE.MathUtils.lerp(.50, 1.42, Math.pow(t, .78));
+  paliers.push({
+    t,
+    y: THREE.MathUtils.lerp(TOP_Y, BOTTOM_Y, t),
+    r,
+    h: .66 + t * .34,
+    /* decalage lateral alterne : la chute descend en marches au lieu
+       d'empiler des disques sur un axe, ce qui donnait un champignon.
+       L'amplitude reste faible pour que la colonne tienne au centre. */
+    x: (i % 2 ? 1 : -1) * r * .24,
+    z: (i % 2 ? -.14 : .14),
+    lacet: (i % 2 ? 1 : -1) * .2 + i * .08,
+  });
+}
 
-  const slab = mesh(new THREE.BoxGeometry(w, h, d),
-                    i % 3 === 0 ? 'graniteShade' : 'granite');
-  slab.position.set((i % 2 ? .13 : -.13) * w, y, (i % 2 ? -.16 : .16));
-  slab.rotation.y = (i % 2 ? 1 : -1) * .12 + i * .05;
-  slab.castShadow = true;
-  slab.receiveShadow = true;
-  CASCADE.add(slab);
+for (let i = 0; i < TIERS; i++) {
+  const { y, r, h, x, z, lacet } = paliers[i];
+  const suiv = paliers[i + 1];
 
-  /* mousse sur l'arete avant */
-  const moss = mesh(new THREE.BoxGeometry(w * .82, .13, d * .2),
-                    i % 2 ? 'moss' : 'mossLight');
-  moss.position.set(slab.position.x, y + h / 2 + .05, slab.position.z + d * .36);
-  moss.rotation.y = slab.rotation.y;
-  CASCADE.add(moss);
+  /* la roche : une lame large de face et courte en profondeur, pas un
+     disque. C'est la silhouette qui fait lire la marche. */
+  part(slab(), i % 3 === 0 ? 'graniteShade' : 'granite', {
+    pos: [x, y, z], rot: [0, lacet, 0], scale: [r * 1.16, h, r * .64],
+  });
 
-  /* fougeres */
-  if (i % 2 === 0) {
-    const fern = mesh(new THREE.ConeGeometry(.2, .66, 4, 1), i % 4 ? 'fern' : 'foliageShade');
-    fern.position.set(slab.position.x - w * .42, y + h / 2 + .3, slab.position.z + d * .22);
-    fern.rotation.z = .3;
-    CASCADE.add(fern);
+  /* le talus : des eclats accumules au pied de la dalle */
+  const nTalus = 3 + (i % 3);
+  for (let k = 0; k < nTalus; k++) {
+    const a = rr(0, Math.PI * 2);
+    const d = r * rr(.70, 1.05);
+    const sc = r * rr(.13, .27);
+    part(chunk(), rnd() < .4 ? 'graniteLight' : 'graniteShade', {
+      pos: [x + Math.cos(a) * d * 1.1, y - h * rr(.2, .55), z + Math.sin(a) * d * .64],
+      rot: [rr(0, 3), rr(0, 3), rr(0, 3)],
+      scale: [sc, sc * rr(.6, 1), sc * rr(.7, 1.1)],
+    });
   }
 
-  /* chute d'eau vers le palier suivant */
-  if (i < TIERS - 1) {
-    const nextY = THREE.MathUtils.lerp(TOP_Y, BOTTOM_Y, (i + 1) / (TIERS - 1));
-    const fall = nextY - y + h;
-    const water = mesh(new THREE.BoxGeometry(w * .30, Math.abs(fall), d * .17),
-                       i % 2 ? 'foam' : 'water');
-    water.position.set(slab.position.x, y - Math.abs(fall) / 2, slab.position.z + d * .18);
-    water.rotation.y = slab.rotation.y;
-    CASCADE.add(water);
+  /* la mousse, concentree sur l'arete avant */
+  const nMousse = 5 + (i % 3);
+  for (let k = 0; k < nMousse; k++) {
+    const a = Math.PI * .5 + rr(-1.2, 1.2);
+    const d = r * rr(.80, 1.0);
+    const sc = r * rr(.17, .32);
+    part(blob(), k % 2 ? 'moss' : 'mossLight', {
+      pos: [x + Math.cos(a) * d * 1.1, y + h * .44, z + Math.sin(a) * d * .62],
+      rot: [0, rr(0, 3), 0],
+      scale: [sc, sc * rr(.28, .5), sc * rr(.8, 1.2)],
+    });
+  }
 
-    /* ecume a l'impact : trois petits cubes blancs, rien de plus */
-    for (let k = 0; k < 3; k++) {
-      const spray = mesh(new THREE.BoxGeometry(.17, .17, .17), k === 1 ? 'white' : 'foam');
-      spray.position.set(
-        slab.position.x + (k - 1) * w * .22,
-        nextY + .45 + (k % 2) * .22,
-        slab.position.z + d * (.28 + k * .06)
-      );
-      spray.rotation.set(.5 + k, .7 * k, .3);
-      CASCADE.add(spray);
+  /* les fougeres, dans les angles ombrages */
+  if (i % 2 === 0 || i === TIERS - 1) {
+    const n = 1 + (i % 2 === 0 ? 1 : 0);
+    for (let k = 0; k < n; k++) {
+      const a = Math.PI * (k ? .12 : .9) + rr(-.25, .25);
+      fern(x + Math.cos(a) * r * .9, y + h * .4, z + Math.sin(a) * r * .5,
+           r * rr(.55, .8), a);
     }
+  }
+
+  /* la nappe vers le palier suivant */
+  if (suiv) {
+    const haut = y + h * .34;
+    const bas = suiv.y + suiv.h * .36;
+    const chute = haut - bas;
+
+    /* une seule teinte pour toute la colonne : l'alternance eau / ecume
+       d'un palier a l'autre faisait un empilement de bougies. */
+    part(nappe(r * .78, suiv.r * .84, chute, suiv.x - x, .16), 'water', {
+      pos: [x, haut, z + r * .16], rot: [0, lacet * .5, 0],
+    });
+
+    /* deux filets d'ecume le long des bords, pour que la lame ne soit
+       pas une surface morte */
+    for (const cote of [-1, 1]) {
+      part(nappe(r * .2, suiv.r * .26, chute * .96, suiv.x - x, .15), 'foam', {
+        pos: [x + cote * r * .3, haut - .04, z + r * .19], rot: [0, lacet * .5, 0],
+      });
+    }
+
+    /* le bourrelet de la levre : l'eau roule avant de basculer */
+    part(blob(), 'foam', {
+      pos: [x, y + h * .48, z + r * .4], rot: [0, lacet, 0],
+      scale: [r * .44, r * .09, r * .14],
+    });
+
+    ecume(suiv.x, bas + .12, z + suiv.r * .3, suiv.r * .66, 8 + (i % 3));
   }
 }
 
-/* --- bassin turquoise --- */
-/* rayon 1.55 : le bassin reste sous la barre des 25% de largeur visible,
-   comme la colonne. Un bassin plus large casserait le gabarit. */
-const pool = mesh(new THREE.CylinderGeometry(1.55, 1.25, .5, 20, 1), 'waterDeep');
-pool.position.set(0, BOTTOM_Y - .55, .2);
-pool.receiveShadow = true;
-CASCADE.add(pool);
+/* ------------------------------------------------------------------ *
+ * 5. LE BASSIN
+ *    Rayon 1.55 : il reste dans la meme bande de 22% que la colonne.
+ *    Un bassin plus large casserait le gabarit.
+ * ------------------------------------------------------------------ */
+const POOL_R = 1.55, POOL_Y = BOTTOM_Y - .55;
 
-const poolRim = mesh(new THREE.TorusGeometry(1.6, .14, 8, 24), 'sandWet');
-poolRim.rotation.x = -Math.PI / 2;
-poolRim.position.copy(pool.position);
-CASCADE.add(poolRim);
+part(displace(new THREE.CylinderGeometry(1, .70, 1, 18, 2),
+     (x, y, z) => { const k = .09 * noise3(x * 3, y * 3, z * 3); return [x * k, 0, z * k]; }),
+     'poolShade', { pos: [0, POOL_Y, .2], scale: [POOL_R, .66, POOL_R * .92] });
 
-/* --- sphere de verre, palier central --- */
-const sphere = new THREE.Mesh(new THREE.SphereGeometry(.78, 32, 24), MAT_GLASS);
-sphere.position.set(1.55, -.6, 1.15);
-CASCADE.add(sphere);
+/* la surface : des rides concentriques, percee d'un trou minuscule au
+   centre pour eviter les triangles degeneres du pole */
+part(sheet(26, 7, (u, v) => {
+  const a = u * Math.PI * 2;
+  const rad = (.05 + v * .95) * POOL_R * .95;
+  return [Math.cos(a) * rad, Math.sin(rad * 5.5 - 1) * .035, Math.sin(a) * rad * .92];
+}), 'water', { pos: [0, POOL_Y + .34, .2] });
 
-/* --- anneau de verre traverse par l'eau, palier bas --- */
-const ring = new THREE.Mesh(new THREE.TorusGeometry(1.0, .13, 14, 40), MAT_GLASS);
-ring.position.set(-1.35, -5.6, .9);
-ring.rotation.set(.34, .5, .12);
-CASCADE.add(ring);
+/* la margelle : des galets poses tout autour */
+for (let k = 0; k < 22; k++) {
+  const a = (k / 22) * Math.PI * 2 + rr(-.1, .1);
+  const s = rr(.1, .22);
+  part(chunk(), pick(['sandWet', 'graniteLight', 'sandShade']), {
+    pos: [Math.cos(a) * POOL_R * rr(1.0, 1.14), POOL_Y + .28 + rr(-.08, .06),
+          .2 + Math.sin(a) * POOL_R * rr(.94, 1.06)],
+    rot: [rr(0, 3), rr(0, 3), rr(0, 3)],
+    scale: [s, s * rr(.5, .8), s * rr(.8, 1.1)],
+  });
+}
+ecume(0, POOL_Y + .42, .2 + POOL_R * .3, POOL_R * .7, 12);
 
-scene.add(CASCADE);
+/* des galets semes sur le sable, pour que le sol ne soit pas desert */
+for (let k = 0; k < 26; k++) {
+  const a = rr(0, Math.PI * 2), d = rr(2.2, 9);
+  const s = rr(.07, .2);
+  part(chunk(), pick(['sandWet', 'sandShade', 'graniteLight']), {
+    pos: [Math.cos(a) * d, -10.92 + dune(Math.cos(a) * d, -Math.sin(a) * d), Math.sin(a) * d],
+    rot: [rr(0, 3), rr(0, 3), rr(0, 3)],
+    scale: [s, s * rr(.4, .7), s * rr(.8, 1.2)],
+    lot: 'ground',
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ * 6. FUSION
+ *    Toutes les pieces sont fondues en trois geometries. Le relief
+ *    detaille ne coute donc pas un appel de rendu par caillou.
+ * ------------------------------------------------------------------ */
+function fuse(lot) {
+  const g = mergeGeometries(PARTS[lot], false);
+  if (!g) throw new Error('fusion impossible : lot ' + lot);
+  for (const p of PARTS[lot]) p.dispose();
+  PARTS[lot].length = 0;
+  return g;
+}
+
+const RELIEF = new THREE.Mesh(fuse('near'), MAT);
+RELIEF.castShadow = true;
+RELIEF.receiveShadow = true;
+scene.add(RELIEF);
+
+const SOL = new THREE.Mesh(fuse('ground'), MAT);
+SOL.receiveShadow = true;          /* le sol recoit mais ne projette pas */
+scene.add(SOL);
+
+const mountains = new THREE.Mesh(fuse('far'), MAT);
+scene.add(mountains);
+
+/* --- les deux objets de verre, seuls a porter un autre materiau --- */
+/* les deux volumes sont poses CONTRE la chute, pas devant le ciel :
+   il leur faut de la roche et de l'eau a refracter pour se lire. */
+const sphere = new THREE.Mesh(new THREE.SphereGeometry(.84, 40, 28), MAT_GLASS);
+sphere.position.set(1.06, -.78, 1.42);
+scene.add(sphere);
+
+const ring = new THREE.Mesh(new THREE.TorusGeometry(1.05, .15, 18, 48), MAT_GLASS);
+ring.position.set(-1.1, -5.5, 1.15);
+ring.rotation.set(.46, .42, .12);
+scene.add(ring);
+
+const TRIS = (RELIEF.geometry.attributes.position.count
+            + SOL.geometry.attributes.position.count
+            + mountains.geometry.attributes.position.count) / 3;
+console.info(`relief fondu : ${TRIS | 0} faces en 3 geometries`);
 
 /* ------------------------------------------------------------------ *
  * 4. COMPOSITION VERROUILLEE
