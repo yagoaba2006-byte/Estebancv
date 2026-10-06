@@ -652,10 +652,27 @@ function part(geo, swatch, opt = {}) {
   for (const name of Object.keys(g.attributes)) {
     if (name !== 'position') g.deleteAttribute(name);
   }
+  /* la teinte peut etre une fonction de la position : elle est alors
+     evaluee au CENTRE DE CHAQUE FACE et appliquee a ses trois sommets.
+     Par sommet, l'interpolation des U balaierait la bande et ramenerait
+     des teintes etrangeres au milieu des triangles ; par face, la
+     couleur reste franche et on gagne le marbrage de la roche et le
+     degrade de l'eau sans ajouter la moindre texture. */
   const n = g.attributes.position.count;
   const uv = new Float32Array(n * 2);
-  const u = U[swatch];
-  for (let i = 0; i < n; i++) { uv[i * 2] = u; uv[i * 2 + 1] = 0.5; }
+  const att = g.attributes.position;
+  if (typeof swatch === 'function') {
+    for (let f = 0; f < n; f += 3) {
+      const cx = (att.getX(f) + att.getX(f + 1) + att.getX(f + 2)) / 3;
+      const cy = (att.getY(f) + att.getY(f + 1) + att.getY(f + 2)) / 3;
+      const cz = (att.getZ(f) + att.getZ(f + 1) + att.getZ(f + 2)) / 3;
+      const u = U[swatch(cx, cy, cz)];
+      for (let k = 0; k < 3; k++) { uv[(f + k) * 2] = u; uv[(f + k) * 2 + 1] = 0.5; }
+    }
+  } else {
+    const u = U[swatch];
+    for (let i = 0; i < n; i++) { uv[i * 2] = u; uv[i * 2 + 1] = 0.5; }
+  }
   g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
 
   _eul.set(rot[0], rot[1], rot[2]);
@@ -666,6 +683,46 @@ function part(geo, swatch, opt = {}) {
   g.computeVertexNormals();        // desindexe => une normale par face
   PARTS[lot].push(g);
   return g;
+}
+
+/* --- nuanciers : une teinte tiree de la position, evaluee par face --- */
+
+/* le granit n'est jamais d'un seul gris : on pioche dans trois teintes
+   voisines de la bande selon un bruit de position. */
+function roche(clair) {
+  return (x, y, z) => {
+    const n = noise3(x * 2.6, y * 3.1, z * 2.9);
+    return clair
+      ? (n > .42 ? 'graniteLight' : n < -.42 ? 'graniteShade' : 'granite')
+      : (n > .46 ? 'granite' : n < -.34 ? 'graniteDeep' : 'graniteShade');
+  };
+}
+
+/* l'eau s'aere en tombant : sombre et lisse en haut de la lame, blanche
+   et brisee en bas. Le bruit reste BASSE FREQUENCE et de faible
+   amplitude : a frequence fine, les faces voisines tombent dans des
+   teintes differentes et la nappe devient une mosaique de triangles au
+   lieu d'une chute. Il ne fait ici que casser la regularite des bandes. */
+function eau(fall) {
+  return (x, y, z) => {
+    const t = Math.min(Math.max(-y / fall, 0), 1);
+    const n = noise3(x * 1.3, y * .7, z * 1.3);
+    const a = Math.pow(t, 1.9) + n * .09;
+    return a > .95 ? 'white' : a > .78 ? 'foam' : a > .1 ? 'water' : 'waterDeep';
+  };
+}
+
+/* le bassin : profond au centre, ecumeux sur la margelle */
+function bassin(x, y, z) {
+  const r = Math.hypot(x, z);
+  const n = noise3(x * 3.1, y * 3.3, z * 3.7) * .5 + .5;
+  return r + n * .3 > 1.3 ? 'foam' : r > .6 ? 'water' : 'waterDeep';
+}
+
+/* la mousse vire au vert sombre dans les creux */
+function mousse(x, y, z) {
+  const n = noise3(x * 4.7, y * 5.3, z * 4.1);
+  return n > .34 ? 'mossLight' : n < -.36 ? 'fern' : 'moss';
 }
 
 /* --- vocabulaire de formes --- */
@@ -769,9 +826,9 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDraw
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 /* PCFSoftShadowMap a ete retire de three 0.186 et retombait en silence
-   sur PCF en affichant un avertissement a chaque chargement. On demande
-   donc PCF directement, avec une carte plus fine pour compenser. */
-renderer.shadowMap.type = THREE.PCFShadowMap;
+   sur PCF en affichant un avertissement a chaque chargement. VSM donne
+   de vraies ombres douces, que PCF ne sait plus produire ici. */
+renderer.shadowMap.type = THREE.VSMShadowMap;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(PAPER);
@@ -812,19 +869,32 @@ const camera = new THREE.PerspectiveCamera(35, 1, .1, 200);
 /* cle haute et peu intense, ambiante genereuse : une cle basse et forte
    projetait une ombre dure jusque dans la marge droite, la ou le texte
    se pose aux sections 02 et 04. */
-const key = new THREE.DirectionalLight(0xfff5e8, 1.72);
+const key = new THREE.DirectionalLight(0xfff5e8, 1.52);
 key.position.set(-6, 17, 8);
 key.castShadow = true;
 key.shadow.mapSize.set(2048, 2048);
 key.shadow.camera.near = 1;
 key.shadow.camera.far = 50;
-key.shadow.camera.left = -14;
-key.shadow.camera.right = 14;
-key.shadow.camera.top = 20;
-key.shadow.camera.bottom = -20;
-key.shadow.bias = -0.0008;
+/* cadrage d'ombre resserre sur la chute : 20 x 32 unites au lieu de
+   28 x 40, soit deux fois plus de texels par unite pour la meme carte. */
+key.shadow.camera.left = -10;
+key.shadow.camera.right = 10;
+key.shadow.camera.top = 16;
+key.shadow.camera.bottom = -16;
+key.shadow.radius = 5;
+key.shadow.blurSamples = 16;
+key.shadow.bias = -0.0004;
 scene.add(key);
-scene.add(new THREE.HemisphereLight(0xffffff, 0xe3d9c7, 1.58));
+/* les trois sources s'additionnent sur une face tournee vers le
+   haut : au-dela, l'albedo du granit est ecrete et le palier du sommet
+   vire au blanc. */
+scene.add(new THREE.HemisphereLight(0xffffff, 0xe3d9c7, 1.3));
+
+/* une contre-lumiere froide, sans ombre : elle detache la chute du
+   papier au lieu de la laisser s'y fondre. */
+const contre = new THREE.DirectionalLight(0xdce9f2, .5);
+contre.position.set(7, 4, -9);
+scene.add(contre);
 
 /* --- le sol : des dunes tres basses. Un plan mort ne donnait a l'ombre
        portee aucune surface a epouser. --- */
@@ -902,7 +972,7 @@ for (let i = 0; i < TIERS; i++) {
 
   /* la roche : une lame large de face et courte en profondeur, pas un
      disque. C'est la silhouette qui fait lire la marche. */
-  part(slab(), i % 3 === 0 ? 'graniteShade' : 'granite', {
+  part(slab(), roche(i % 3 !== 0), {
     pos: [x, y, z], rot: [0, lacet, 0], scale: [r * 1.16, h, r * .64],
   });
 
@@ -912,7 +982,7 @@ for (let i = 0; i < TIERS; i++) {
     const a = rr(0, Math.PI * 2);
     const d = r * rr(.70, 1.05);
     const sc = r * rr(.13, .27);
-    part(chunk(), rnd() < .4 ? 'graniteLight' : 'graniteShade', {
+    part(chunk(), roche(rnd() < .55), {
       pos: [x + Math.cos(a) * d * 1.1, y - h * rr(.2, .55), z + Math.sin(a) * d * .64],
       rot: [rr(0, 3), rr(0, 3), rr(0, 3)],
       scale: [sc, sc * rr(.6, 1), sc * rr(.7, 1.1)],
@@ -925,7 +995,7 @@ for (let i = 0; i < TIERS; i++) {
     const a = Math.PI * .5 + rr(-1.2, 1.2);
     const d = r * rr(.80, 1.0);
     const sc = r * rr(.17, .32);
-    part(blob(), k % 2 ? 'moss' : 'mossLight', {
+    part(blob(), mousse, {
       pos: [x + Math.cos(a) * d * 1.1, y + h * .44, z + Math.sin(a) * d * .62],
       rot: [0, rr(0, 3), 0],
       scale: [sc, sc * rr(.28, .5), sc * rr(.8, 1.2)],
@@ -948,19 +1018,12 @@ for (let i = 0; i < TIERS; i++) {
     const bas = suiv.y + suiv.h * .36;
     const chute = haut - bas;
 
-    /* une seule teinte pour toute la colonne : l'alternance eau / ecume
-       d'un palier a l'autre faisait un empilement de bougies. */
-    part(nappe(r * .78, suiv.r * .84, chute, suiv.x - x, .16), 'water', {
+    /* la lame porte son propre degrade : lisse et sombre en haut,
+       blanche et brisee en bas. Les deux filets d'ecume colles sur les
+       bords, qui faisaient deux rayures peintes, ne servent plus. */
+    part(nappe(r * .78, suiv.r * .84, chute, suiv.x - x, .16), eau(chute), {
       pos: [x, haut, z + r * .16], rot: [0, lacet * .5, 0],
     });
-
-    /* deux filets d'ecume le long des bords, pour que la lame ne soit
-       pas une surface morte */
-    for (const cote of [-1, 1]) {
-      part(nappe(r * .2, suiv.r * .26, chute * .96, suiv.x - x, .15), 'foam', {
-        pos: [x + cote * r * .3, haut - .04, z + r * .19], rot: [0, lacet * .5, 0],
-      });
-    }
 
     /* le bourrelet de la levre : l'eau roule avant de basculer */
     part(blob(), 'foam', {
@@ -989,7 +1052,7 @@ part(sheet(26, 7, (u, v) => {
   const a = u * Math.PI * 2;
   const rad = (.05 + v * .95) * POOL_R * .95;
   return [Math.cos(a) * rad, Math.sin(rad * 5.5 - 1) * .035, Math.sin(a) * rad * .92];
-}), 'water', { pos: [0, POOL_Y + .34, .2] });
+}), bassin, { pos: [0, POOL_Y + .34, .2] });
 
 /* la margelle : des galets poses tout autour */
 for (let k = 0; k < 22; k++) {
