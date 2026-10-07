@@ -3,453 +3,658 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cascade — palette texture</title>
+<title>L'immeuble</title>
+<meta name="description" content="Un immeuble planté, dessiné étage par étage à mesure que l'on descend du ciel. Illustration vectorielle pilotée au défilement.">
+<meta name="theme-color" content="#e0eff4">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23e0eff4'/><rect x='9' y='7' width='14' height='20' fill='%23333539'/><rect x='7' y='12' width='18' height='3' fill='%23e9bba9'/><rect x='7' y='19' width='18' height='3' fill='%23e9bba9'/><circle cx='12' cy='10' r='3' fill='%23acd162'/><circle cx='20' cy='17' r='3' fill='%23698546'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@700&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
 <style>
+  /* ================================================================
+     Les teintes sont relevees directement sur l'illustration de
+     reference, pas approximees a l'oeil.
+     ================================================================ */
   :root{
-    /* les 24 teintes sont lues depuis la texture par le GPU.          */
-    /* on en re-declare 6 ici, uniquement pour le DOM (texte, fonds).  */
-    --sand-light:#f7f3ea;
-    --sand:#eee6d6;
-    --granite-deep:#333736;
-    --water:#7fc6c2;
-    --water-deep:#479ea3;
-    --ink:#2b2622;
+    --ciel-haut:#dcecf2;
+    --ciel-bas:#f3f8fa;
+    --encre:#2f3a40;
+    --encre-douce:#5c6b73;
+    --filet:rgba(47,58,64,.16);
+    --gouttiere:3vw;
   }
+
   *{margin:0;padding:0;box-sizing:border-box}
-  html{scroll-behavior:smooth}
+  html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
   body{
-    background:var(--sand-light);
-    color:var(--ink);
-    font-family:"Nunito",system-ui,sans-serif;
-    font-weight:400;
+    background:var(--ciel-bas);
+    color:var(--encre);
+    font-family:"Inter",system-ui,-apple-system,sans-serif;
+    font-size:clamp(.92rem,.86rem + .25vw,1rem);
+    line-height:1.6;
     overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:rgba(105,133,70,.22)}
+
+  /* ---- la scene occupe tout l'ecran et reste epinglee ---- */
+  #scene{position:sticky;top:0;height:100vh;height:100svh;width:100%;z-index:0}
+  #scene svg{display:block;width:100%;height:100%}
+
+  /* la hauteur du defilement est calculee par le script, d'apres la
+     hauteur du monde dessine. */
+  #defilement{position:relative;z-index:1;pointer-events:none}
+
+  /* ---- chrome, volontairement discret : l'illustration est le sujet ---- */
+  /* Le texte du chrome passe sur la facade sombre : sans voile, il
+     devient illisible des qu'on quitte le ciel. */
+  #entete{
+    position:fixed;left:0;right:0;top:0;z-index:3;
+    display:flex;align-items:baseline;justify-content:space-between;
+    gap:1.5rem;padding:1.3rem var(--gouttiere);
+    pointer-events:none;
+  }
+  #entete::before{
+    content:"";position:absolute;left:0;right:0;top:0;bottom:-34px;z-index:-1;
+    background:linear-gradient(180deg,rgba(243,248,250,.94) 0%,rgba(243,248,250,.62) 46%,rgba(243,248,250,0) 100%);
+  }
+  #voile-bas{
+    position:fixed;left:0;right:0;bottom:0;height:74px;z-index:2;
+    background:linear-gradient(0deg,rgba(243,248,250,.86) 0%,rgba(243,248,250,.42) 48%,rgba(243,248,250,0) 100%);
+    pointer-events:none;
+  }
+  .marque{font-weight:500;font-size:.95rem;letter-spacing:.01em}
+  .meta{
+    font-size:.64rem;font-weight:500;letter-spacing:.17em;
+    text-transform:uppercase;color:var(--encre-douce);text-align:right;
   }
 
-  /* ---- scene collante, le scroll pilote la camera ---- */
-  #stage{position:sticky;top:0;height:100svh;width:100%;z-index:0}
-  #stage canvas{display:block;width:100%;height:100%}
-  /* remonte sur la scene collante : les textes se posent sur le canvas */
-  #scroller{height:460svh;margin-top:-100svh;position:relative;z-index:1;pointer-events:none}
+  #indice{
+    position:fixed;left:var(--gouttiere);bottom:1.4rem;z-index:3;
+    display:flex;flex-direction:column;align-items:flex-start;gap:.7rem;
+    font-size:.64rem;font-weight:500;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--encre-douce);
+    pointer-events:none;
+    transition:opacity .5s ease;
+  }
+  #indice .rail{position:relative;width:1px;height:40px;background:var(--filet);overflow:hidden}
+  #indice .rail::after{
+    content:"";position:absolute;left:0;top:0;width:1px;height:13px;
+    background:#698546;animation:descend 2.2s cubic-bezier(.5,0,.5,1) infinite;
+  }
+  @keyframes descend{0%{transform:translateY(-110%)}100%{transform:translateY(320%)}}
 
-  /* ---- les deux marges nues : 39% a gauche, 39% a droite ---- */
-  .panel{
-    position:absolute;
-    width:34%;
-    max-width:420px;
-    pointer-events:auto;
+  /* compteur d'etage, cale en bas a droite */
+  #compteur{
+    position:fixed;right:var(--gouttiere);bottom:1.4rem;z-index:3;
+    font-size:.64rem;font-weight:500;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--encre-douce);
+    font-variant-numeric:tabular-nums;
+    pointer-events:none;
   }
-  .panel.left{left:3vw;text-align:left}
-  .panel.right{right:3vw;text-align:right}
+  #compteur b{color:var(--encre);font-weight:500}
 
-  .panel h2{
-    font-family:"Amatic SC",cursive;
-    font-weight:700;
-    font-size:clamp(2.6rem,5.2vw,4.4rem);
-    line-height:.92;
-    letter-spacing:.01em;
-    color:var(--granite-deep);
-    margin-bottom:.5rem;
+  #progression{
+    position:fixed;left:0;right:0;bottom:0;z-index:3;height:2px;
+    background:rgba(47,58,64,.08);pointer-events:none;
   }
-  .panel p{
-    font-size:clamp(.95rem,1.15vw,1.08rem);
-    line-height:1.62;
-    color:#565b59;
-    max-width:34ch;
-  }
-  .panel.right p{margin-left:auto}
+  #progression i{display:block;height:100%;width:100%;background:#698546;
+    transform:scaleX(0);transform-origin:0 50%}
 
-  .tag{
-    display:inline-block;
-    font-size:.72rem;
-    font-weight:900;
-    letter-spacing:.14em;
-    text-transform:uppercase;
-    color:var(--water-deep);
-    border:2px solid var(--water);
-    border-radius:15px;      /* le rayon de bruno-simon.com */
-    padding:.42rem .85rem;
-    margin-bottom:1rem;
-  }
+  /* ================================================================
+     Le dessin etage par etage
+     Chaque etage attend d'entrer dans le cadre pour se poser. La
+     vegetation suit la structure avec un leger retard : on voit le
+     beton, puis les plantes.
+     ================================================================ */
+  .etage{opacity:0;transform:translate(0,30px);
+    transition:opacity .62s ease,transform .62s cubic-bezier(.22,.68,.16,1)}
+  .etage.vu{opacity:1;transform:translate(0,0)}
+  .etage .verdure{opacity:0;transform:translate(0,14px);
+    transition:opacity .7s ease .16s,transform .7s cubic-bezier(.22,.68,.16,1) .16s}
+  .etage.vu .verdure{opacity:1;transform:translate(0,0)}
 
-  /* placement vertical des blocs le long du scroll */
-  #b1{top:14svh}
-  #b2{top:120svh}
-  #b3{top:236svh}
-  #b4{top:348svh}
+  /* ---- les fenetres : prevues pour recevoir des boutons ---- */
+  .fenetre{transition:opacity .25s ease}
 
-  /* ---- bandeau de debug : montre le gabarit 22 / 39 ---- */
-  #guides{
-    position:fixed;inset:0;z-index:2;pointer-events:none;
-    display:none;
-  }
-  #guides.on{display:block}
-  #guides span{
-    position:absolute;top:0;bottom:0;
-    border-left:1px dashed rgba(199,21,21,.55);
-  }
-  #guides span:nth-child(1){left:39%}
-  #guides span:nth-child(2){left:61%}
-  #guides b{
-    position:absolute;left:39%;width:22%;top:0;bottom:0;
-    background:rgba(127,198,194,.13);
-  }
-
-  #tools{
-    position:fixed;right:14px;bottom:14px;z-index:3;
-    display:flex;gap:8px;
-  }
-  #tools button{
-    font-family:"Nunito",sans-serif;font-weight:700;font-size:.72rem;
-    letter-spacing:.1em;text-transform:uppercase;
-    background:var(--granite-deep);color:var(--sand-light);
-    border:0;border-radius:15px;padding:.6rem 1rem;cursor:pointer;
-  }
-  #tools button:hover{background:var(--ink)}
-
-  @media (max-width:760px){
-    .panel{width:86%;left:7vw;right:auto;text-align:left}
-    .panel.right p{margin-left:0}
-  }
   @media (prefers-reduced-motion:reduce){
     html{scroll-behavior:auto}
+    #indice .rail::after{animation:none;height:40px;opacity:.5}
+    .etage,.etage .verdure{transition:none}
+    .oiseau,.nuage{animation:none !important}
+  }
+
+  @media (max-width:700px){
+    :root{--gouttiere:5vw}
+    .meta{display:none}
   }
 </style>
 </head>
 <body>
 
-<div id="stage"><canvas id="c"></canvas></div>
+<header id="entete">
+  <div class="marque">L'immeuble</div>
+  <p class="meta">Dessiné étage par étage</p>
+</header>
 
-<div id="scroller">
-  <div class="panel left"  id="b1">
-    <span class="tag">Source</span>
-    <h2>La cascade<br>commence en haut</h2>
-    <p>Une colonne d'eau unique, posee au centre exact du cadre. Tout le reste est du sable nu — l'espace est la matiere principale, pas le decor.</p>
-  </div>
+<div id="scene"><svg id="toile" aria-label="Illustration d'un immeuble planté, du ciel jusqu'à la rue" role="img"></svg></div>
 
-  <div class="panel right" id="b2">
-    <span class="tag">Granit</span>
-    <h2>Neuf paliers<br>de pierre</h2>
-    <p>Chaque palier elargit la chute. La mousse s'accroche aux aretes, les fougeres poussent dans les angles ombrages.</p>
-  </div>
+<div id="defilement" aria-hidden="true"></div>
 
-  <div class="panel left"  id="b3">
-    <span class="tag">Verre</span>
-    <h2>Une sphere<br>et un anneau</h2>
-    <p>Deux objets transparents interrompent la chute. La sphere reflechit la vallee, l'anneau laisse l'eau le traverser.</p>
-  </div>
+<div id="voile-bas" aria-hidden="true"></div>
 
-  <div class="panel right" id="b4">
-    <span class="tag">Bassin</span>
-    <h2>Et finit<br>en turquoise</h2>
-    <p>L'eau se rassemble dans un bassin translucide, a peine plus large que la colonne qui l'a remplie.</p>
-  </div>
+<div id="indice" aria-hidden="true">
+  <span>Descendre</span>
+  <span class="rail"></span>
 </div>
-
-<div id="guides"><span></span><span></span><b></b></div>
-<div id="tools">
-  <button id="toggle" type="button">gabarit 22 / 39</button>
-  <button id="export" type="button">exporter png</button>
-</div>
-
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://unpkg.com/three@0.186.1/build/three.module.js",
-    "three/addons/": "https://unpkg.com/three@0.186.1/examples/jsm/"
-  }
-}
-</script>
+<p id="compteur" aria-hidden="true">Ciel</p>
+<div id="progression" aria-hidden="true"><i></i></div>
 
 <script type="module">
-import * as THREE from 'three';
+/* ==================================================================
+ * 1. LA PALETTE
+ *    Relevee sur l'illustration de reference : chaque teinte vient
+ *    d'un echantillonnage de l'image, pas d'une approximation.
+ * ================================================================== */
+const C = {
+  cielHaut:   '#dcecf2',
+  cielBas:    '#f3f8fa',
+  brume:      '#eaf3f6',
+  nuage:      '#fbfdfe',
+  oiseau:     '#56666f',
 
-/* ------------------------------------------------------------------ *
- * 1. LA TEXTURE DE DESIGN
- *    Un PNG de 128x4 pixels, 200 octets, 24 teintes.
- *    C'est le meme principe exact que palette.png sur bruno-simon.com.
- *    Aucun materiau ne porte de couleur : chaque geometrie pointe vers
- *    une coordonnee U dans cette bande, et le GPU y lit sa teinte.
- *    Une seule texture, un seul materiau, un seul draw call par groupe.
- * ------------------------------------------------------------------ */
-const PALETTE_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAAAECAIAAADJfaBSAAAAj0lEQVR4nGP8/vkVAwx8//wGzv7w5gWc/ezxfTj72uv/cPaDew/g7Dt378LZd+8g2K2L5sHZx9++g7NP3HiIMOfsRTi7KUwMzr506wbC3uuPEepvIszZPHsjnP38zSeEmicI94d4OsLZDMdr4MynjyfC2e61CHuv3rrHQC/ARDebRgFWMBoBAwxGI4BhYAEAdSU3CL7egiAAAAAASUVORK5CYII=';
+  tourLoin:   '#d3dfe6',
+  tourMoyen:  '#b5c2d0',
+  tourProche: '#8ca4ac',
 
-/* ordre des swatches dans la bande (4 px chacun) */
-const SWATCHES = [
-  'sandLight','sand','sandShade','sandWet',
-  'graniteLight','granite','graniteShade','graniteDeep',
-  'foam','water','waterDeep','poolShade',
-  'mossLight','moss','fern','foliageShade',
-  'mountainHaze','mountainFar','mountainNear','white',
-  'warmAccent','goldAccent','ink','black'
-];
-const SW = 4, TEX_W = 128;
-const U = {};
-SWATCHES.forEach((name, i) => { U[name] = (i * SW + SW / 2) / TEX_W; });
+  dalle:      '#e9bba9',
+  dalleHaut:  '#f2cbbb',
+  dalleTranche:'#c08a76',
+  facade:     '#333539',
+  facadeClair:'#3e414a',
+  vitre:      '#2b2b35',
+  vitreClair: '#3a3a46',
+  reflet:     '#5c6472',
+  meneau:     '#4f4b5c',
+  toit:       '#59515f',
+  toitClair:  '#6d6676',
+  jardiniere: '#7d5141',
+  jardClair:  '#8f5e49',
 
-const palette = new THREE.TextureLoader().load(PALETTE_PNG);
-palette.magFilter = THREE.NearestFilter;   // pas d'interpolation entre teintes
-palette.minFilter = THREE.NearestFilter;
-palette.generateMipmaps = false;
-palette.colorSpace = THREE.SRGBColorSpace;
+  vertClair:  '#acd162',
+  vertMoyen:  '#698546',
+  vertSombre: '#46603a',
+  vertNuit:   '#35502f',
 
-/* degrade a 3 paliers : la lumiere devient des bandes, pas un fondu */
-const steps = new Uint8Array([90, 160, 235, 255]);
-const gradientMap = new THREE.DataTexture(steps, steps.length, 1, THREE.RedFormat);
-gradientMap.magFilter = THREE.NearestFilter;
-gradientMap.minFilter = THREE.NearestFilter;
-gradientMap.needsUpdate = true;
+  sol:        '#dfe8ec',
+  trottoir:   '#cbd8de',
+  rue:        '#b9c7cf',
+};
 
-const MAT = new THREE.MeshToonMaterial({ map: palette, gradientMap });
-const MAT_GLASS = new THREE.MeshPhysicalMaterial({
-  color: 0xffffff, transmission: .92, thickness: .55, roughness: .08,
-  ior: 1.42, transparent: true, opacity: .9
-});
+/* ==================================================================
+ * 2. OUTILS
+ * ================================================================== */
+const NS = 'http://www.w3.org/2000/svg';
 
-/* ------------------------------------------------------------------ *
- * 2. assigner une teinte = reecrire les UV de la geometrie
- * ------------------------------------------------------------------ */
-function paint(geometry, swatch) {
-  const uv = geometry.attributes.uv;
-  const u = U[swatch];
-  for (let i = 0; i < uv.count; i++) uv.setXY(i, u, 0.5);
-  uv.needsUpdate = true;
-  return geometry;
+/* aleatoire reproductible : l'immeuble doit etre le meme a chaque
+   chargement, sinon ce n'est plus un dessin mais un tirage. */
+function mulberry32(a) {
+  return function () {
+    a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
 }
-function mesh(geometry, swatch, mat = MAT) {
-  return new THREE.Mesh(paint(geometry, swatch), mat);
+let rnd = mulberry32(0x13A7);
+const rr = (a, b) => a + (b - a) * rnd();
+const ri = (a, b) => Math.floor(rr(a, b + 1));
+
+function el(parent, nom, attrs) {
+  const n = document.createElementNS(NS, nom);
+  for (const k in attrs) {
+    if (attrs[k] !== undefined && attrs[k] !== null) n.setAttribute(k, attrs[k]);
+  }
+  parent.appendChild(n);
+  return n;
+}
+const g = (parent, attrs) => el(parent, 'g', attrs || {});
+
+/* ==================================================================
+ * 3. GABARIT
+ *    Le nombre de travees s'adapte au format de l'ecran. Sur un
+ *    telephone, un immeuble a quatre travees aurait exactement la
+ *    silhouette de l'ecran : on verrait tout d'un coup et il ne
+ *    resterait rien a faire defiler.
+ * ================================================================== */
+const FH = 200;             // hauteur d'un etage
+const ETAGES = 7;
+const TRAVEE = 150, ENTRE = 18, MARGE = 26;
+
+function gabarit() {
+  const ratio = innerWidth / innerHeight;
+  const travees = ratio > 1.3 ? 4 : ratio > 0.8 ? 3 : 2;
+  const BW = travees * TRAVEE + (travees - 1) * ENTRE + 2 * MARGE;
+  const part = ratio > 1.3 ? .64 : ratio > 0.8 ? .76 : .86;
+  const VW = Math.round(BW / part);
+  return { travees, BW, VW, x0: Math.round((VW - BW) / 2) };
 }
 
-/* ------------------------------------------------------------------ *
- * 3. scene
- * ------------------------------------------------------------------ */
-const canvas = document.getElementById('c');
-/* preserveDrawingBuffer : le navigateur garde la derniere image rendue,
-   ce qui permet d'exporter la vue courante en PNG (bouton en bas a droite).
-   Cette image sert directement de reference de structure pour Firefly :
-   le gabarit 22 / 39 est deja respecte, il n'y a rien a recadrer. */
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xf7f3ea);
-scene.fog = new THREE.Fog(0xf7f3ea, 26, 72);
-
-const camera = new THREE.PerspectiveCamera(35, 1, .1, 200);
-
-const key = new THREE.DirectionalLight(0xfff3e6, 2.1);
-key.position.set(-7, 14, 9);
-key.castShadow = true;
-key.shadow.mapSize.set(1024, 1024);
-key.shadow.camera.near = 1;
-key.shadow.camera.far = 50;
-key.shadow.camera.left = -14;
-key.shadow.camera.right = 14;
-key.shadow.camera.top = 20;
-key.shadow.camera.bottom = -20;
-scene.add(key);
-scene.add(new THREE.HemisphereLight(0xffffff, 0xded2be, 1.25));
-
-/* --- sable : le fond nu qui occupe 78% de la largeur --- */
-const ground = mesh(new THREE.PlaneGeometry(220, 220, 1, 1), 'sand');
-ground.rotation.x = -Math.PI / 2;
-ground.position.y = -11;
-ground.receiveShadow = true;
-scene.add(ground);
-
-/* --- montagnes floues, bord haut --- */
-const mountains = new THREE.Group();
-/* elles affleurent a peine la ligne d'horizon : les deux marges doivent
-   rester lisibles pour le texte, donc on les enfonce dans le sable. */
-[['mountainNear', 15, -40, 8], ['mountainFar', 21, -54, 11], ['mountainHaze', 27, -70, 14]]
-  .forEach(([swatch, spread, z, h]) => {
-    for (let i = -3; i <= 3; i++) {
-      const m = mesh(new THREE.ConeGeometry(h * .8, h, 5, 1), swatch);
-      m.position.set(i * spread * .42 + (i % 2 ? 2.5 : -2.5), -11 + h / 2 - h * .46, z);
-      m.rotation.y = i * .7;
-      m.scale.y = .72 + ((i * 37) % 11) / 22;
-      mountains.add(m);
+/* ==================================================================
+ * 4. VEGETATION
+ *    Des masses de feuillage en trois verts francs, batis de cercles
+ *    qui se chevauchent : c'est ce qui donne la silhouette bombee de
+ *    l'illustration de reference, sans aucun degrade.
+ * ================================================================== */
+function feuillage(parent, cx, cy, larg, haut, densite = 1) {
+  const couches = [
+    { col: C.vertNuit,   n: Math.round(5 * densite), dy:  .10, r: [.26, .40] },
+    { col: C.vertSombre, n: Math.round(7 * densite), dy: -.04, r: [.24, .38] },
+    { col: C.vertMoyen,  n: Math.round(7 * densite), dy: -.16, r: [.20, .34] },
+    { col: C.vertClair,  n: Math.round(5 * densite), dy: -.28, r: [.15, .26] },
+  ];
+  for (const c of couches) {
+    for (let i = 0; i < c.n; i++) {
+      el(parent, 'circle', {
+        cx: (cx + rr(-.5, .5) * larg).toFixed(1),
+        cy: (cy + c.dy * haut + rr(-.16, .16) * haut).toFixed(1),
+        r: (haut * rr(c.r[0], c.r[1])).toFixed(1),
+        fill: c.col,
+      });
     }
+  }
+}
+
+/* Les retombees pendent SOUS les massifs, jamais au hasard le long de
+   la dalle : isolees sur le vitrage, elles se lisaient comme des traits
+   verts flottants au lieu de plantes qui debordent. Chaque brin part
+   d'un massif et se termine par une petite feuille. */
+function retombees(parent, ancrages, y) {
+  for (const a of ancrages) {
+    if (rnd() < .55) continue;              /* la plupart des massifs ne retombent pas */
+    const n = ri(1, 2);
+    for (let i = 0; i < n; i++) {
+      const px = a.x + rr(-.40, .40) * a.larg;
+      const h = rr(20, 46);
+      const dx = rr(-5, 5);
+      const col = rnd() < .5 ? C.vertMoyen : C.vertSombre;
+      /* une langue effilee plutot qu'un trait termine par une boule :
+         la boule donnait une rangee d'epingles sous la dalle. */
+      el(parent, 'path', {
+        d: `M${(px - 5).toFixed(1)} ${y} `
+         + `q ${(dx * 1.4).toFixed(1)} ${(h * .6).toFixed(1)} ${(dx + 2).toFixed(1)} ${h.toFixed(1)} `
+         + `q ${(-dx * .4).toFixed(1)} ${(-h * .55).toFixed(1)} ${(-dx + 5).toFixed(1)} ${(-h).toFixed(1)} Z`,
+        fill: col,
+      });
+    }
+  }
+}
+
+/* ==================================================================
+ * 5. UN ETAGE
+ *    Dalle debordante, tranche d'ombre, jardinieres posees dessus,
+ *    vegetation, puis la facade vitree en dessous.
+ * ================================================================== */
+const DALLE_H = 24, TRANCHE_H = 9, DEBORD = 24;
+
+/* Deux groupes emboites, et c'est indispensable : la position dans le
+   monde est portee par l'ATTRIBUT transform du SVG, l'animation
+   d'apparition par la PROPRIETE transform du CSS. Sur un meme element,
+   la propriete CSS ecrase l'attribut et l'etage perd sa place. */
+/* la facade vitree d'un niveau, posee sous sa dalle */
+function facadeVitree(grp, G, i) {
+  const { BW, x0 } = G;
+  const hautVitrage = DALLE_H + TRANCHE_H;
+  const hVit = FH - hautVitrage;
+  el(grp, 'rect', { x: x0, y: hautVitrage, width: BW, height: hVit, fill: C.facade });
+
+  /* les trumeaux lateraux, un peu plus clairs que le fond */
+  el(grp, 'rect', { x: x0, y: hautVitrage, width: MARGE, height: hVit, fill: C.facadeClair });
+  el(grp, 'rect', { x: x0 + BW - MARGE, y: hautVitrage, width: MARGE, height: hVit, fill: C.facadeClair });
+
+  const fy = hautVitrage + 14;
+  const fh = hVit - 24;
+  for (let t = 0; t < G.travees; t++) {
+    const fx = x0 + MARGE + t * (TRAVEE + ENTRE);
+
+    /* la baie : un groupe nomme, pret a recevoir un bouton plus tard */
+    const baie = g(grp, {
+      class: 'fenetre',
+      id: `fenetre-${i}-${t}`,
+      'data-etage': i,
+      'data-travee': t,
+    });
+    el(baie, 'rect', { x: fx, y: fy, width: TRAVEE, height: fh, fill: C.vitre });
+
+    /* trois panneaux separes par deux meneaux */
+    const pw = TRAVEE / 3;
+    for (let p = 0; p < 3; p++) {
+      if (rnd() < .42) {
+        el(baie, 'rect', {
+          x: (fx + p * pw).toFixed(1), y: fy, width: pw.toFixed(1), height: fh,
+          fill: C.vitreClair,
+        });
+      }
+    }
+    for (let m = 1; m < 3; m++) {
+      el(baie, 'rect', { x: (fx + m * pw - 1.5).toFixed(1), y: fy, width: 3, height: fh, fill: C.meneau });
+    }
+    /* un reflet oblique, comme dans la reference */
+    el(baie, 'path', {
+      d: `M${fx} ${fy + fh * .62} L${fx + TRAVEE * .46} ${fy} L${fx + TRAVEE * .78} ${fy} L${fx} ${fy + fh * .94} Z`,
+      fill: C.reflet, opacity: .20,
+    });
+    el(baie, 'rect', { x: fx, y: fy, width: TRAVEE, height: fh, fill: 'none',
+                       stroke: C.meneau, 'stroke-width': 2.5 });
+  }
+}
+
+/* la dalle debordante, sa tranche d'ombre, et ce qui pousse dessus */
+function dalleEtVerdure(grp, G, i, densite = 1) {
+  const { BW, x0 } = G;
+  /* --- la dalle, qui deborde de chaque cote --- */
+  el(grp, 'rect', { x: x0 - DEBORD, y: DALLE_H, width: BW + DEBORD * 2, height: TRANCHE_H, fill: C.dalleTranche });
+  el(grp, 'rect', { x: x0 - DEBORD, y: 0, width: BW + DEBORD * 2, height: DALLE_H, fill: C.dalle });
+  el(grp, 'rect', { x: x0 - DEBORD, y: 0, width: BW + DEBORD * 2, height: 5, fill: C.dalleHaut });
+
+  /* --- ce qui pousse sur la dalle --- */
+  const verdure = g(grp, { class: 'verdure' });
+  const ancrages = [];
+
+  const bacs = (2 + (i % 2)) + (densite > 1 ? 2 : 0);
+  for (let b = 0; b < bacs; b++) {
+    const bw = rr(70, 130);
+    const bx = x0 - DEBORD + 14 + (b + rr(-.18, .18)) * ((BW + DEBORD * 2 - 40) / bacs);
+    el(verdure, 'rect', { x: bx.toFixed(1), y: -16, width: bw.toFixed(1), height: 18,
+                          fill: C.jardiniere, rx: 2 });
+    el(verdure, 'rect', { x: bx.toFixed(1), y: -16, width: bw.toFixed(1), height: 4,
+                          fill: C.jardClair, rx: 2 });
+    const larg = bw * 1.25;
+    feuillage(verdure, bx + bw / 2, -26, larg, rr(46, 74) * densite, densite);
+    ancrages.push({ x: bx + bw / 2, larg });
+  }
+  /* quelques massifs libres, poses a meme la dalle */
+  for (let k = 0; k < 2 + (i % 2); k++) {
+    const cx = x0 + rr(-10, BW + 10), larg = rr(70, 140);
+    feuillage(verdure, cx, -14, larg, rr(38, 62) * densite, .8 * densite);
+    ancrages.push({ x: cx, larg });
+  }
+
+  retombees(verdure, ancrages, DALLE_H + TRANCHE_H);
+}
+
+function etage(parent, i, G, Y) {
+  const place = g(parent, { transform: `translate(0, ${Y})` });
+  const grp = g(place, { class: 'etage', 'data-y': Y, 'data-etage': i });
+  facadeVitree(grp, G, i);
+  dalleEtVerdure(grp, G, i);
+  return grp;
+}
+
+/* ==================================================================
+ * 6. LE MONDE
+ * ================================================================== */
+let G, MONDE_H, CIEL_H;
+
+function construire() {
+  rnd = mulberry32(0x13A7);          // on repart du meme tirage
+  G = gabarit();
+  const { BW, VW, x0 } = G;
+
+  CIEL_H = 820;
+  /* le toit est un niveau entier : avec une simple dalle, il n'avait
+     pas de facade en dessous et flottait au-dessus du vide, un trou de
+     ciel entre lui et le premier etage. */
+  const TOIT_H = FH;
+  const SOL_H = 300;
+  MONDE_H = CIEL_H + TOIT_H + ETAGES * FH + SOL_H;
+
+  const svg = document.getElementById('toile');
+  svg.textContent = '';
+  svg.setAttribute('viewBox', `0 0 ${VW} ${Math.round(VW / (innerWidth / innerHeight))}`);
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+
+  /* --- degrade du ciel --- */
+  const defs = el(svg, 'defs', {});
+  const lg = el(defs, 'linearGradient', { id: 'ciel', x1: 0, y1: 0, x2: 0, y2: 1 });
+  el(lg, 'stop', { offset: '0%', 'stop-color': C.cielHaut });
+  el(lg, 'stop', { offset: '100%', 'stop-color': C.cielBas });
+
+  /* le fond couvre tout le cadre, quel que soit le defilement */
+  el(svg, 'rect', { id: 'fond', x: -VW, y: -MONDE_H, width: VW * 3, height: MONDE_H * 3, fill: 'url(#ciel)' });
+
+  /* trois plans, qui ne different que par leur vitesse : le
+     deplacement reste strictement vertical. */
+  const planCiel = g(svg, { id: 'plan-ciel' });
+  const planLoin = g(svg, { id: 'plan-loin' });
+  const planPres = g(svg, { id: 'plan-pres' });
+
+  /* --- nuages --- */
+  for (const n of [{ x: VW * .22, y: 150, s: 1 }, { x: VW * .74, y: 330, s: .72 }, { x: VW * .45, y: 560, s: .5 }]) {
+    const nu = g(planCiel, { class: 'nuage' });
+    nu.style.animation = `derive ${rr(70, 110).toFixed(0)}s linear infinite`;
+    for (let i = 0; i < 6; i++) {
+      el(nu, 'circle', {
+        cx: (n.x + rr(-110, 110) * n.s).toFixed(1),
+        cy: (n.y + rr(-16, 16) * n.s).toFixed(1),
+        r: (rr(26, 54) * n.s).toFixed(1),
+        fill: C.nuage, opacity: .9,
+      });
+    }
+  }
+
+  /* --- les oiseaux ---
+     Poses au milieu du ciel et non en bordure : a l'arret, ou en
+     mouvement reduit, l'animation ne joue pas et un oiseau cale a
+     gauche du cadre restait invisible. */
+  const oiseau = g(planCiel, { class: 'oiseau' });
+  oiseau.style.animation = 'vole 30s linear infinite';
+  const trait = (parent, x, y, ech, op) => el(parent, 'path', {
+    d: `M${x} ${y} q ${7 * ech} ${-6 * ech} ${14 * ech} 0 q ${7 * ech} ${-6 * ech} ${14 * ech} 0`,
+    stroke: C.oiseau, 'stroke-width': (2.6 * ech).toFixed(1),
+    fill: 'none', 'stroke-linecap': 'round', opacity: op,
   });
-scene.add(mountains);
+  trait(oiseau, VW * .18, 300, 1.15, 1);
+  trait(oiseau, VW * .18 + 54, 338, .78, .62);
+  trait(oiseau, VW * .18 - 38, 352, .62, .45);
 
-/* --- la colonne : 9 paliers de granit qui s'elargissent --- */
-const CASCADE = new THREE.Group();
-const TIERS = 9;
-const TOP_Y = 7.4, BOTTOM_Y = -9.2;
-
-for (let i = 0; i < TIERS; i++) {
-  const t = i / (TIERS - 1);
-  const y = THREE.MathUtils.lerp(TOP_Y, BOTTOM_Y, t);
-  const w = THREE.MathUtils.lerp(1.05, 3.0, Math.pow(t, .78));
-  const d = w * .74;
-  const h = .62;
-
-  const slab = mesh(new THREE.BoxGeometry(w, h, d),
-                    i % 3 === 0 ? 'graniteShade' : 'granite');
-  slab.position.set((i % 2 ? .13 : -.13) * w, y, (i % 2 ? -.16 : .16));
-  slab.rotation.y = (i % 2 ? 1 : -1) * .12 + i * .05;
-  slab.castShadow = true;
-  slab.receiveShadow = true;
-  CASCADE.add(slab);
-
-  /* mousse sur l'arete avant */
-  const moss = mesh(new THREE.BoxGeometry(w * .82, .13, d * .2),
-                    i % 2 ? 'moss' : 'mossLight');
-  moss.position.set(slab.position.x, y + h / 2 + .05, slab.position.z + d * .36);
-  moss.rotation.y = slab.rotation.y;
-  CASCADE.add(moss);
-
-  /* fougeres */
-  if (i % 2 === 0) {
-    const fern = mesh(new THREE.ConeGeometry(.2, .66, 4, 1), i % 4 ? 'fern' : 'foliageShade');
-    fern.position.set(slab.position.x - w * .42, y + h / 2 + .3, slab.position.z + d * .22);
-    fern.rotation.z = .3;
-    CASCADE.add(fern);
-  }
-
-  /* chute d'eau vers le palier suivant */
-  if (i < TIERS - 1) {
-    const nextY = THREE.MathUtils.lerp(TOP_Y, BOTTOM_Y, (i + 1) / (TIERS - 1));
-    const fall = nextY - y + h;
-    const water = mesh(new THREE.BoxGeometry(w * .30, Math.abs(fall), d * .17),
-                       i % 2 ? 'foam' : 'water');
-    water.position.set(slab.position.x, y - Math.abs(fall) / 2, slab.position.z + d * .18);
-    water.rotation.y = slab.rotation.y;
-    CASCADE.add(water);
-
-    /* ecume a l'impact : trois petits cubes blancs, rien de plus */
-    for (let k = 0; k < 3; k++) {
-      const spray = mesh(new THREE.BoxGeometry(.17, .17, .17), k === 1 ? 'white' : 'foam');
-      spray.position.set(
-        slab.position.x + (k - 1) * w * .22,
-        nextY + .45 + (k % 2) * .22,
-        slab.position.z + d * (.28 + k * .06)
-      );
-      spray.rotation.set(.5 + k, .7 * k, .3);
-      CASCADE.add(spray);
+  /* --- la ville au loin, posee sur la ligne d'horizon --- */
+  const horizon = CIEL_H + TOIT_H + ETAGES * FH + 120;
+  for (const [col, nb, hmin, hmax, larg] of [
+    [C.tourLoin, 9, 240, 620, 86],
+    [C.tourMoyen, 7, 180, 440, 70],
+    [C.tourProche, 5, 120, 300, 58],
+  ]) {
+    for (let i = 0; i < nb; i++) {
+      const w = larg * rr(.6, 1.25);
+      const h = rr(hmin, hmax);
+      const x = rr(-VW * .15, VW * 1.15);
+      /* on evite le centre, ou se tient l'immeuble */
+      if (x + w > x0 - 70 && x < x0 + BW + 70) continue;
+      el(planLoin, 'rect', { x: x.toFixed(1), y: (horizon - h).toFixed(1), width: w.toFixed(1), height: h.toFixed(1), fill: col });
     }
   }
+
+  /* --- le sol --- */
+  const solY = CIEL_H + TOIT_H + ETAGES * FH;
+  el(planPres, 'rect', { x: -VW, y: solY + 110, width: VW * 3, height: 60, fill: C.sol });
+  el(planPres, 'rect', { x: -VW, y: solY + 170, width: VW * 3, height: 36, fill: C.trottoir });
+  el(planPres, 'rect', { x: -VW, y: solY + 206, width: VW * 3, height: SOL_H, fill: C.rue });
+  /* bordure du trottoir et marquage au sol */
+  el(planPres, 'rect', { x: -VW, y: solY + 206, width: VW * 3, height: 5, fill: C.trottoir });
+  for (let i = -3; i < 14; i++) {
+    el(planPres, 'rect', { x: (i * (VW / 7) + 20).toFixed(1), y: solY + 262, width: (VW / 16).toFixed(1),
+                           height: 7, fill: C.sol, opacity: .75 });
+  }
+
+  /* --- l'immeuble --- */
+  const immeuble = g(planPres, { id: 'immeuble' });
+
+  /* le toit-terrasse : un niveau comme les autres, plus le volume
+     technique pose dessus et une vegetation plus dense. */
+  const placeToit = g(immeuble, { transform: `translate(0, ${CIEL_H})` });
+  const toit = g(placeToit, { class: 'etage', 'data-y': CIEL_H, 'data-etage': -1 });
+  el(toit, 'rect', { x: x0 + BW * .36, y: -62, width: BW * .30, height: 62, fill: C.toit });
+  el(toit, 'rect', { x: x0 + BW * .36, y: -62, width: BW * .30, height: 7, fill: C.toitClair });
+  facadeVitree(toit, G, 0);
+  dalleEtVerdure(toit, G, 1, 1.25);
+
+  /* les etages, du haut vers le bas */
+  for (let i = 0; i < ETAGES; i++) {
+    etage(immeuble, i, G, CIEL_H + TOIT_H + i * FH);
+  }
+
+  /* le rez-de-chaussee : un socle plus clair et une entree */
+  const ySocle = CIEL_H + TOIT_H + ETAGES * FH;
+  const placeSocle = g(immeuble, { transform: `translate(0, ${ySocle})` });
+  const socle = g(placeSocle, { class: 'etage', 'data-y': ySocle, 'data-etage': ETAGES });
+  el(socle, 'rect', { x: x0, y: 0, width: BW, height: 110, fill: C.facade });
+  el(socle, 'rect', { x: x0 + BW / 2 - 52, y: 24, width: 104, height: 86, fill: C.vitreClair });
+  el(socle, 'rect', { x: x0 + BW / 2 - 2, y: 24, width: 4, height: 86, fill: C.meneau });
+
+  /* --- les arbres de la rue, devant le socle --- */
+  const arbres = g(planPres, { class: 'etage', 'data-y': solY, 'data-etage': ETAGES + 1 });
+  const verdArbres = g(arbres, { class: 'verdure' });
+  for (let i = 0; i < 9; i++) {
+    const ax = rr(-VW * .08, VW * 1.08);
+    if (ax > x0 + BW * .3 && ax < x0 + BW * .7) continue;   /* on degage l'entree */
+    const ah = rr(90, 165);
+    el(verdArbres, 'rect', { x: (ax - 5).toFixed(1), y: (solY + 120 - ah * .35).toFixed(1),
+                             width: 10, height: (ah * .45).toFixed(1), fill: C.jardiniere });
+    feuillage(verdArbres, ax, solY + 100 - ah * .5, ah * 1.15, ah * .8, 1.2);
+  }
+
+  /* --- mesure du defilement --- */
+  /* le ciel seul a droit a la parallaxe : nuages et oiseau n'ont aucun
+     point d'ancrage au sol. La ville, elle, est POSEE sur l'horizon ;
+     la faire glisser plus lentement la decalait du trottoir et elle
+     n'entrait jamais dans le cadre. */
+  const viteCiel = .32, viteLoin = 1;
+  const vue = () => +svg.viewBox.baseVal.height;
+  document.getElementById('defilement').style.height =
+    Math.max(300, Math.min(900, (MONDE_H / vue()) * 100)) + 'vh';
+
+  return { svg, planCiel, planLoin, planPres, viteCiel, viteLoin };
 }
 
-/* --- bassin turquoise --- */
-/* rayon 1.55 : le bassin reste sous la barre des 25% de largeur visible,
-   comme la colonne. Un bassin plus large casserait le gabarit. */
-const pool = mesh(new THREE.CylinderGeometry(1.55, 1.25, .5, 20, 1), 'waterDeep');
-pool.position.set(0, BOTTOM_Y - .55, .2);
-pool.receiveShadow = true;
-CASCADE.add(pool);
+/* ==================================================================
+ * 7. LE DEFILEMENT
+ *    Strictement vertical : seule la coordonnee y bouge. Les trois
+ *    plans avancent a des vitesses differentes, ce qui donne la
+ *    profondeur sans jamais faire pivoter quoi que ce soit.
+ * ================================================================== */
+const reduit = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let vue = construire();
+let camY = null, cible = 0;
 
-const poolRim = mesh(new THREE.TorusGeometry(1.6, .14, 8, 24), 'sandWet');
-poolRim.rotation.x = -Math.PI / 2;
-poolRim.position.copy(pool.position);
-CASCADE.add(poolRim);
+const barre = document.querySelector('#progression i');
+const compteur = document.getElementById('compteur');
+const indice = document.getElementById('indice');
+let etagesDom = [...document.querySelectorAll('.etage')];
 
-/* --- sphere de verre, palier central --- */
-const sphere = new THREE.Mesh(new THREE.SphereGeometry(.78, 32, 24), MAT_GLASS);
-sphere.position.set(1.55, -.6, 1.15);
-CASCADE.add(sphere);
-
-/* --- anneau de verre traverse par l'eau, palier bas --- */
-const ring = new THREE.Mesh(new THREE.TorusGeometry(1.0, .13, 14, 40), MAT_GLASS);
-ring.position.set(-1.35, -5.6, .9);
-ring.rotation.set(.34, .5, .12);
-CASCADE.add(ring);
-
-scene.add(CASCADE);
-
-/* ------------------------------------------------------------------ *
- * 4. COMPOSITION VERROUILLEE
- *    La colonne fait 3 unites de large. On veut qu'elle occupe 22% de
- *    la largeur visible -> la largeur visible doit valoir 3 / 0.22.
- *    On recalcule la distance camera a chaque resize, donc le cadrage
- *    tient a tous les ratios. Les 39% de chaque cote restent nus.
- * ------------------------------------------------------------------ */
-const CASCADE_WIDTH = 3.0;
-const CENTER_FRACTION = 0.22;
-const TARGET_VISIBLE_WIDTH = CASCADE_WIDTH / CENTER_FRACTION;  // 13.64 unites
-
-let camDist = 13;
-
-function resize() {
-  /* on mesure le canvas lui-meme, pas la fenetre : l'element est pilote
-     par le CSS, et un ResizeObserver attrape aussi les cas ou l'evenement
-     resize de window ne part pas (iframe, split view, barre mobile). */
-  const w = canvas.clientWidth || innerWidth;
-  const h = canvas.clientHeight || innerHeight;
-  renderer.setSize(w, h, false);
-  camera.aspect = w / h;
-
-  const halfFov = THREE.MathUtils.degToRad(camera.fov) / 2;
-  let visibleWidth = TARGET_VISIBLE_WIDTH;
-  /* en portrait on relache un peu, sinon la colonne devient illisible */
-  if (camera.aspect < 1) visibleWidth = CASCADE_WIDTH / 0.40;
-  camDist = visibleWidth / (2 * Math.tan(halfFov) * camera.aspect);
-
-  camera.updateProjectionMatrix();
-}
-
-/* ------------------------------------------------------------------ *
- * 5. le scroll descend la camera le long de la chute
- * ------------------------------------------------------------------ */
-/* progress = null tant que la premiere image n'est pas rendue : au
-   rechargement le navigateur restaure la position de scroll, et la camera
-   doit s'y poser directement au lieu de redescendre depuis le sommet. */
-let progress = null, target = 0;
-
-function readScroll() {
+function lireDefilement() {
   const max = document.documentElement.scrollHeight - innerHeight;
-  target = max > 0 ? THREE.MathUtils.clamp(scrollY / max, 0, 1) : 0;
+  const t = max > 0 ? Math.min(Math.max(scrollY / max, 0), 1) : 0;
+  const hVue = +vue.svg.viewBox.baseVal.height;
+  cible = t * Math.max(0, MONDE_H - hVue);
 }
 
-const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-function frame() {
-  if (progress === null) progress = target;
-  else progress += (target - progress) * (reduced ? 1 : 0.085);
-
-  const camY = THREE.MathUtils.lerp(TOP_Y + 3.4, BOTTOM_Y + 1.2, progress);
-  const lookY = THREE.MathUtils.lerp(TOP_Y - 1.2, BOTTOM_Y - 1.4, progress);
-  const orbit = (progress - .5) * .55;
-
-  camera.position.set(Math.sin(orbit) * camDist, camY, Math.cos(orbit) * camDist);
-  camera.lookAt(0, lookY, 0);
-
-  mountains.position.y = progress * 2.4;   // parallaxe douce du fond
-
-  renderer.render(scene, camera);
-  requestAnimationFrame(frame);
+function nommeEtage(y, hVue) {
+  const centre = y + hVue / 2;
+  const solY = CIEL_H + FH + ETAGES * FH;
+  if (centre < CIEL_H - 40) return 'Ciel';
+  /* des que le trottoir occupe le bas du cadre, on est dans la rue :
+     se fier au seul centre du cadre annoncait encore un etage alors que
+     le sol remplissait la moitie de l'image. */
+  if (y + hVue * .80 > solY) return 'Rue';
+  const i = Math.floor((centre - CIEL_H - FH) / FH);
+  if (i < 0) return 'Toit-terrasse';
+  if (i >= ETAGES) return 'Rue';
+  return `Étage <b>${ETAGES - i}</b>`;
 }
 
-addEventListener('resize', () => { resize(); readScroll(); });
-addEventListener('scroll', readScroll, { passive: true });
-new ResizeObserver(resize).observe(canvas);
-resize();
-readScroll();
-frame();
+function image() {
+  if (camY === null) camY = cible;
+  else camY += (cible - camY) * (reduit ? 1 : .12);
 
-/* ---- gabarit de controle ---- */
-const guides = document.getElementById('guides');
-document.getElementById('toggle').addEventListener('click', () => {
-  guides.classList.toggle('on');
-});
+  vue.planPres.setAttribute('transform', `translate(0, ${(-camY).toFixed(2)})`);
+  vue.planLoin.setAttribute('transform', `translate(0, ${(-camY * vue.viteLoin).toFixed(2)})`);
+  vue.planCiel.setAttribute('transform', `translate(0, ${(-camY * vue.viteCiel).toFixed(2)})`);
 
-/* export de la vue courante : reference de structure prete pour Firefly */
-document.getElementById('export').addEventListener('click', () => {
-  renderer.render(scene, camera);            // image fraiche avant lecture
-  canvas.toBlob(blob => {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `cascade-structure-${Math.round(progress * 100)}.png`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, 'image/png');
+  const hVue = +vue.svg.viewBox.baseVal.height;
+
+  /* le dessin etage par etage : un etage se pose quand il entre */
+  for (const e of etagesDom) {
+    e.classList.toggle('vu', +e.dataset.y < camY + hVue * .94);
+  }
+
+  const max = Math.max(1, MONDE_H - hVue);
+  barre.style.transform = `scaleX(${(camY / max).toFixed(4)})`;
+  compteur.innerHTML = nommeEtage(camY, hVue);
+  indice.style.opacity = camY > hVue * .3 ? 0 : 1;
+
+  requestAnimationFrame(image);
+}
+
+/* le gabarit change avec le format : on redessine seulement quand le
+   nombre de travees bouge, pas a chaque pixel de redimensionnement. */
+let travuesCourantes = G.travees;
+let minuteur;
+addEventListener('resize', () => {
+  clearTimeout(minuteur);
+  minuteur = setTimeout(() => {
+    const nouveau = gabarit();
+    if (nouveau.travees !== travuesCourantes) {
+      vue = construire();
+      travuesCourantes = nouveau.travees;
+      etagesDom = [...document.querySelectorAll('.etage')];
+    } else {
+      const svg = document.getElementById('toile');
+      svg.setAttribute('viewBox', `0 0 ${G.VW} ${Math.round(G.VW / (innerWidth / innerHeight))}`);
+      document.getElementById('defilement').style.height =
+        Math.max(300, Math.min(900, (MONDE_H / +svg.viewBox.baseVal.height) * 100)) + 'vh';
+    }
+    lireDefilement();
+  }, 160);
 });
+addEventListener('scroll', lireDefilement, { passive: true });
+
+lireDefilement();
+image();
+
+/* ==================================================================
+ * 8. POINT D'ACCROCHE POUR LES BOUTONS A VENIR
+ *    Chaque baie est deja un element du DOM, avec son identifiant et
+ *    son etage. Brancher un panneau de texte plus tard ne demandera
+ *    pas de toucher au dessin :
+ *
+ *      immeuble.fenetres.forEach(f => f.addEventListener('click', ...))
+ *
+ *    f.dataset.etage et f.dataset.travee disent de quelle baie il
+ *    s'agit. Les attributs d'accessibilite (role, tabindex, libelle)
+ *    seront ajoutes en meme temps que l'action : une fenetre qui ne
+ *    fait rien ne doit pas s'annoncer comme un bouton.
+ * ================================================================== */
+window.immeuble = {
+  get fenetres() { return [...document.querySelectorAll('.fenetre')]; },
+  get camY() { return camY; },
+  MONDE_H, ETAGES, FH,
+};
+
+/* animations du ciel, injectees ici pour rester avec leur scene */
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes vole {
+    0%   { transform: translate(${(-G.VW * .42).toFixed(0)}px, 46px); }
+    50%  { transform: translate(${(G.VW * .22).toFixed(0)}px, -26px); }
+    100% { transform: translate(${(G.VW * .88).toFixed(0)}px, 34px); }
+  }
+  @keyframes derive {
+    0%   { transform: translate(-40px, 0); }
+    100% { transform: translate(40px, 0); }
+  }`;
+document.head.appendChild(style);
 </script>
 </body>
 </html>
