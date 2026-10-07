@@ -115,8 +115,19 @@
     transition:opacity .7s ease .16s,transform .7s cubic-bezier(.22,.68,.16,1) .16s}
   .etage.vu .verdure{opacity:1;transform:translate(0,0)}
 
-  /* ---- les fenetres : prevues pour recevoir des boutons ---- */
-  .fenetre{transition:opacity .25s ease}
+  /* ---- les fenetres : prevues pour recevoir des boutons ----
+     Le halo et le cadre qui s'eclaire ne servent qu'a montrer la zone
+     exacte qui deviendra cliquable. L'effet n'est actif que sur les
+     baies portant .cliquable : quand les textes arriveront, il suffira
+     de ne poser cette classe que sur les baies qui en ont un. */
+  .fenetre .halo{opacity:0;transition:opacity .18s ease}
+  .fenetre .cadre{transition:fill .18s ease}
+  .fenetre.cliquable{cursor:pointer}
+  .fenetre.cliquable:hover .halo,
+  .fenetre.cliquable:focus-visible .halo{opacity:1}
+  .fenetre.cliquable:hover .cadre,
+  .fenetre.cliquable:focus-visible .cadre{fill:#e8dbd1}
+  .fenetre:focus{outline:none}
 
   @media (prefers-reduced-motion:reduce){
     html{scroll-behavior:auto}
@@ -177,6 +188,14 @@ const C = {
   vitreClair: '#3a3a46',
   reflet:     '#5c6472',
   meneau:     '#4f4b5c',
+  /* le cadre est volontairement PLUS CLAIR que dans l'illustration de
+     reference : c'est lui qui fait lire chaque baie comme une cible
+     distincte sur la facade sombre. */
+  cadre:      '#cdb9ab',
+  cadreHaut:  '#e2d2c6',
+  appui:      '#ab8a78',
+  interieur:  '#f2d7a0',
+  mobilier:   '#6b5a4a',
   toit:       '#59515f',
   toitClair:  '#6d6676',
   jardiniere: '#7d5141',
@@ -230,13 +249,15 @@ const g = (parent, attrs) => el(parent, 'g', attrs || {});
  * ================================================================== */
 const FH = 200;             // hauteur d'un etage
 const ETAGES = 7;
-const TRAVEE = 150, ENTRE = 18, MARGE = 26;
+/* Moins de baies, mais plus grandes : une cible de 190 unites de large
+   se vise sans hesiter, une de 150 serree contre ses voisines non. */
+const TRAVEE = 190, ENTRE = 26, MARGE = 34;
 
 function gabarit() {
   const ratio = innerWidth / innerHeight;
-  const travees = ratio > 1.3 ? 4 : ratio > 0.8 ? 3 : 2;
+  const travees = ratio > 1.05 ? 3 : 2;
   const BW = travees * TRAVEE + (travees - 1) * ENTRE + 2 * MARGE;
-  const part = ratio > 1.3 ? .64 : ratio > 0.8 ? .76 : .86;
+  const part = ratio > 1.3 ? .62 : ratio > 0.8 ? .74 : .86;
   const VW = Math.round(BW / part);
   return { travees, BW, VW, x0: Math.round((VW - BW) / 2) };
 }
@@ -248,18 +269,22 @@ function gabarit() {
  *    l'illustration de reference, sans aucun degrade.
  * ================================================================== */
 function feuillage(parent, cx, cy, larg, haut, densite = 1) {
+  /* dx decale les couches claires vers la gauche : la lumiere vient
+     toujours du meme cote, ce qui donne du volume a la masse au lieu
+     d'un amas de cercles sans relief. */
   const couches = [
-    { col: C.vertNuit,   n: Math.round(5 * densite), dy:  .10, r: [.26, .40] },
-    { col: C.vertSombre, n: Math.round(7 * densite), dy: -.04, r: [.24, .38] },
-    { col: C.vertMoyen,  n: Math.round(7 * densite), dy: -.16, r: [.20, .34] },
-    { col: C.vertClair,  n: Math.round(5 * densite), dy: -.28, r: [.15, .26] },
+    { col: C.vertNuit,   n: Math.round(5 * densite), dx:  .10, dy:  .12, r: [.26, .42] },
+    { col: C.vertSombre, n: Math.round(7 * densite), dx:  .04, dy: -.02, r: [.23, .38] },
+    { col: C.vertMoyen,  n: Math.round(7 * densite), dx: -.08, dy: -.15, r: [.19, .33] },
+    { col: C.vertClair,  n: Math.round(5 * densite), dx: -.18, dy: -.27, r: [.13, .24] },
   ];
   for (const c of couches) {
     for (let i = 0; i < c.n; i++) {
-      el(parent, 'circle', {
-        cx: (cx + rr(-.5, .5) * larg).toFixed(1),
-        cy: (cy + c.dy * haut + rr(-.16, .16) * haut).toFixed(1),
-        r: (haut * rr(c.r[0], c.r[1])).toFixed(1),
+      const r = haut * rr(c.r[0], c.r[1]);
+      el(parent, 'ellipse', {
+        cx: (cx + (c.dx + rr(-.34, .34)) * larg).toFixed(1),
+        cy: (cy + c.dy * haut + rr(-.14, .14) * haut).toFixed(1),
+        rx: r.toFixed(1), ry: (r * rr(.78, .96)).toFixed(1),
         fill: c.col,
       });
     }
@@ -308,13 +333,19 @@ function facadeVitree(grp, G, i) {
   const hautVitrage = DALLE_H + TRANCHE_H;
   const hVit = FH - hautVitrage;
   el(grp, 'rect', { x: x0, y: hautVitrage, width: BW, height: hVit, fill: C.facade });
+  /* l'ombre que la dalle jette sur la facade : une simple bande plus
+     sombre, qui suffit a donner de l'epaisseur sans aucune 3D. */
+  el(grp, 'rect', { x: x0, y: hautVitrage, width: BW, height: 16, fill: '#272a2e' });
 
   /* les trumeaux lateraux, un peu plus clairs que le fond */
   el(grp, 'rect', { x: x0, y: hautVitrage, width: MARGE, height: hVit, fill: C.facadeClair });
   el(grp, 'rect', { x: x0 + BW - MARGE, y: hautVitrage, width: MARGE, height: hVit, fill: C.facadeClair });
+  /* un retour plus sombre sur le flanc droit : le volume se devine,
+     toujours sans perspective. */
+  el(grp, 'rect', { x: x0 + BW - 11, y: hautVitrage, width: 11, height: hVit, fill: '#24262a' });
 
-  const fy = hautVitrage + 14;
-  const fh = hVit - 24;
+  const fy = hautVitrage + 22;
+  const fh = hVit - 44;
   for (let t = 0; t < G.travees; t++) {
     const fx = x0 + MARGE + t * (TRAVEE + ENTRE);
 
@@ -325,28 +356,65 @@ function facadeVitree(grp, G, i) {
       'data-etage': i,
       'data-travee': t,
     });
+
+    /* 1. le cadre clair, qui detoure la baie sur la facade sombre */
+    el(baie, 'rect', { class: 'cadre', x: fx - 7, y: fy - 7,
+                       width: TRAVEE + 14, height: fh + 14, fill: C.cadre, rx: 3 });
+    el(baie, 'rect', { x: fx - 7, y: fy - 7, width: TRAVEE + 14, height: 4,
+                       fill: C.cadreHaut, rx: 2 });
+
+    /* 2. le vitrage */
     el(baie, 'rect', { x: fx, y: fy, width: TRAVEE, height: fh, fill: C.vitre });
 
-    /* trois panneaux separes par deux meneaux */
-    const pw = TRAVEE / 3;
-    for (let p = 0; p < 3; p++) {
-      if (rnd() < .42) {
-        el(baie, 'rect', {
-          x: (fx + p * pw).toFixed(1), y: fy, width: pw.toFixed(1), height: fh,
-          fill: C.vitreClair,
+    /* 3. une baie sur quatre est allumee : la facade cesse d'etre un
+          damier mort et on devine qu'il y a quelqu'un derriere. */
+    if ((i * 7 + t * 3) % 4 === 1) {
+      el(baie, 'rect', { x: fx, y: fy, width: TRAVEE, height: fh, fill: C.interieur });
+      /* une silhouette de plante en pot sur l'appui interieur. Les
+         feuilles partent du pot en eventail : des ellipses jetees au
+         hasard donnaient un champignon. */
+      const sx = fx + TRAVEE * (t % 2 ? .24 : .76);
+      const sy = fy + fh - 20;
+      el(baie, 'path', {
+        d: `M${(sx - 9).toFixed(1)} ${(sy - 16).toFixed(1)} L${(sx + 9).toFixed(1)} ${(sy - 16).toFixed(1)} `
+         + `L${(sx + 7).toFixed(1)} ${sy} L${(sx - 7).toFixed(1)} ${sy} Z`,
+        fill: C.mobilier,
+      });
+      for (let k = 0; k < 5; k++) {
+        const ang = -Math.PI / 2 + (k - 2) * .42;
+        const lg = rr(16, 27);
+        el(baie, 'ellipse', {
+          cx: (sx + Math.cos(ang) * lg * .6).toFixed(1),
+          cy: (sy - 16 + Math.sin(ang) * lg * .55).toFixed(1),
+          rx: rr(4.5, 7).toFixed(1), ry: (lg * .42).toFixed(1),
+          transform: `rotate(${(ang * 180 / Math.PI + 90).toFixed(1)} `
+                   + `${(sx + Math.cos(ang) * lg * .6).toFixed(1)} `
+                   + `${(sy - 16 + Math.sin(ang) * lg * .55).toFixed(1)})`,
+          fill: C.mobilier,
         });
       }
     }
-    for (let m = 1; m < 3; m++) {
-      el(baie, 'rect', { x: (fx + m * pw - 1.5).toFixed(1), y: fy, width: 3, height: fh, fill: C.meneau });
-    }
-    /* un reflet oblique, comme dans la reference */
+
+    /* 4. deux panneaux, un seul meneau : moins de lignes, plus lisible */
+    el(baie, 'rect', { x: (fx + TRAVEE / 2 - 2.5).toFixed(1), y: fy, width: 5, height: fh, fill: C.cadre });
+
+    /* 5. le reflet, en aplat franc et non en degrade */
     el(baie, 'path', {
-      d: `M${fx} ${fy + fh * .62} L${fx + TRAVEE * .46} ${fy} L${fx + TRAVEE * .78} ${fy} L${fx} ${fy + fh * .94} Z`,
-      fill: C.reflet, opacity: .20,
+      d: `M${fx} ${fy + fh * .58} L${(fx + TRAVEE * .42).toFixed(1)} ${fy} `
+       + `L${(fx + TRAVEE * .70).toFixed(1)} ${fy} L${fx} ${fy + fh * .92} Z`,
+      fill: C.reflet, opacity: .17,
     });
-    el(baie, 'rect', { x: fx, y: fy, width: TRAVEE, height: fh, fill: 'none',
-                       stroke: C.meneau, 'stroke-width': 2.5 });
+
+    /* 6. l'appui, qui deborde du cadre et ancre la baie */
+    el(baie, 'rect', { x: fx - 13, y: fy + fh + 7, width: TRAVEE + 26, height: 9,
+                       fill: C.appui, rx: 2 });
+
+    /* 7. le halo de survol, invisible au repos : il montre la zone
+          exacte qui recevra le bouton. */
+    el(baie, 'rect', { class: 'halo', x: fx - 13, y: fy - 13,
+                       width: TRAVEE + 26, height: fh + 36, rx: 6,
+                       fill: C.vertClair, 'fill-opacity': .14,
+                       stroke: C.vertMoyen, 'stroke-width': 6 });
   }
 }
 
@@ -434,14 +502,19 @@ function construire() {
   for (const n of [{ x: VW * .22, y: 150, s: 1 }, { x: VW * .74, y: 330, s: .72 }, { x: VW * .45, y: 560, s: .5 }]) {
     const nu = g(planCiel, { class: 'nuage' });
     nu.style.animation = `derive ${rr(70, 110).toFixed(0)}s linear infinite`;
-    for (let i = 0; i < 6; i++) {
+    /* opacite portee par le GROUPE et non par chaque cercle : a .9 par
+       cercle, les recouvrements se voyaient et le nuage perdait son
+       aplat. */
+    nu.setAttribute('fill', C.nuage);
+    for (let i = 0; i < 7; i++) {
       el(nu, 'circle', {
-        cx: (n.x + rr(-110, 110) * n.s).toFixed(1),
-        cy: (n.y + rr(-16, 16) * n.s).toFixed(1),
-        r: (rr(26, 54) * n.s).toFixed(1),
-        fill: C.nuage, opacity: .9,
+        cx: (n.x + rr(-115, 115) * n.s).toFixed(1),
+        cy: (n.y + rr(-14, 14) * n.s).toFixed(1),
+        r: (rr(28, 56) * n.s).toFixed(1),
       });
     }
+    el(nu, 'rect', { x: (n.x - 118 * n.s).toFixed(1), y: (n.y - 4 * n.s).toFixed(1),
+                     width: (236 * n.s).toFixed(1), height: (30 * n.s).toFixed(1), rx: 15 });
   }
 
   /* --- les oiseaux ---
@@ -510,19 +583,43 @@ function construire() {
   const placeSocle = g(immeuble, { transform: `translate(0, ${ySocle})` });
   const socle = g(placeSocle, { class: 'etage', 'data-y': ySocle, 'data-etage': ETAGES });
   el(socle, 'rect', { x: x0, y: 0, width: BW, height: 110, fill: C.facade });
-  el(socle, 'rect', { x: x0 + BW / 2 - 52, y: 24, width: 104, height: 86, fill: C.vitreClair });
-  el(socle, 'rect', { x: x0 + BW / 2 - 2, y: 24, width: 4, height: 86, fill: C.meneau });
+  el(socle, 'rect', { x: x0 + BW - 11, y: 0, width: 11, height: 110, fill: '#24262a' });
+  /* l'auvent, les deux vantaux vitres et leur encadrement clair */
+  const ex = x0 + BW / 2;
+  el(socle, 'rect', { x: ex - 78, y: 14, width: 156, height: 10, fill: C.dalle, rx: 2 });
+  el(socle, 'rect', { x: ex - 78, y: 24, width: 156, height: 5, fill: C.dalleTranche });
+  el(socle, 'rect', { x: ex - 62, y: 34, width: 124, height: 76, fill: C.cadre, rx: 2 });
+  el(socle, 'rect', { x: ex - 55, y: 41, width: 110, height: 69, fill: C.interieur });
+  el(socle, 'rect', { x: ex - 2.5, y: 41, width: 5, height: 69, fill: C.cadre });
+  /* deux bacs de part et d'autre de la porte */
+  for (const cote of [-1, 1]) {
+    el(socle, 'rect', { x: ex + cote * 96 - 16, y: 76, width: 32, height: 34, fill: C.jardiniere, rx: 2 });
+    feuillage(socle, ex + cote * 96, 66, 56, 42, .8);
+  }
 
   /* --- les arbres de la rue, devant le socle --- */
   const arbres = g(planPres, { class: 'etage', 'data-y': solY, 'data-etage': ETAGES + 1 });
   const verdArbres = g(arbres, { class: 'verdure' });
   for (let i = 0; i < 9; i++) {
     const ax = rr(-VW * .08, VW * 1.08);
-    if (ax > x0 + BW * .3 && ax < x0 + BW * .7) continue;   /* on degage l'entree */
-    const ah = rr(90, 165);
-    el(verdArbres, 'rect', { x: (ax - 5).toFixed(1), y: (solY + 120 - ah * .35).toFixed(1),
-                             width: 10, height: (ah * .45).toFixed(1), fill: C.jardiniere });
-    feuillage(verdArbres, ax, solY + 100 - ah * .5, ah * 1.15, ah * .8, 1.2);
+    if (ax > x0 + BW * .26 && ax < x0 + BW * .74) continue;   /* on degage l'entree */
+    const ah = rr(95, 170);
+    const pied = solY + 122;
+    /* le tronc s'evase au pied et porte deux branches : un simple trait
+       vertical donnait des arbres en sucette. */
+    el(verdArbres, 'path', {
+      d: `M${(ax - 9).toFixed(1)} ${pied} L${(ax - 4).toFixed(1)} ${(pied - ah * .52).toFixed(1)} `
+       + `L${(ax + 4).toFixed(1)} ${(pied - ah * .52).toFixed(1)} L${(ax + 9).toFixed(1)} ${pied} Z`,
+      fill: C.jardiniere,
+    });
+    for (const cote of [-1, 1]) {
+      el(verdArbres, 'path', {
+        d: `M${ax.toFixed(1)} ${(pied - ah * .34).toFixed(1)} `
+         + `q ${(cote * ah * .16).toFixed(1)} ${(-ah * .10).toFixed(1)} ${(cote * ah * .22).toFixed(1)} ${(-ah * .24).toFixed(1)}`,
+        stroke: C.jardiniere, 'stroke-width': 5, fill: 'none', 'stroke-linecap': 'round',
+      });
+    }
+    feuillage(verdArbres, ax, pied - ah * .72, ah * 1.2, ah * .82, 1.3);
   }
 
   /* --- mesure du defilement --- */
@@ -609,6 +706,7 @@ addEventListener('resize', () => {
       vue = construire();
       travuesCourantes = nouveau.travees;
       etagesDom = [...document.querySelectorAll('.etage')];
+      marquerCliquables();        /* le DOM est neuf : il faut les reposer */
     } else {
       const svg = document.getElementById('toile');
       svg.setAttribute('viewBox', `0 0 ${G.VW} ${Math.round(G.VW / (innerWidth / innerHeight))}`);
@@ -636,7 +734,17 @@ image();
  *    seront ajoutes en meme temps que l'action : une fenetre qui ne
  *    fait rien ne doit pas s'annoncer comme un bouton.
  * ================================================================== */
+/* Tant qu'aucun texte n'est rattache, l'affordance est allumee sur
+   TOUTES les baies, pour qu'on voie les zones de clic. Le jour ou les
+   contenus arrivent, cette ligne ne posera .cliquable que sur les baies
+   qui en ont un ; les autres redeviendront de simples fenetres. */
+function marquerCliquables() {
+  for (const f of document.querySelectorAll('.fenetre')) f.classList.add('cliquable');
+}
+marquerCliquables();
+
 window.immeuble = {
+  marquerCliquables,
   get fenetres() { return [...document.querySelectorAll('.fenetre')]; },
   get camY() { return camY; },
   MONDE_H, ETAGES, FH,
