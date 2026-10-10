@@ -4,20 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>L'immeuble</title>
-<meta name="description" content="Une maison de ville plantée, dessinée en vue trois quarts, qui se découvre étage par étage à mesure que l'on descend du ciel.">
-<meta name="theme-color" content="#cfe4ea">
+<meta name="description" content="Un immeuble planté, dessiné de face, qui se découvre niveau par niveau à mesure que l'on descend du ciel jusqu'à la rue.">
+<meta name="theme-color" content="#d9ecf1">
 <meta name="color-scheme" content="light">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23dcebee'/><path d='M8 12h12v15H8z' fill='%2389bfad' stroke='%233c4a48' stroke-width='1.6'/><path d='M20 9l6 3v15l-6-2z' fill='%235f8478' stroke='%233c4a48' stroke-width='1.6'/><path d='M8 12l5-4 7 1-6 3z' fill='%23f3cc8e' stroke='%233c4a48' stroke-width='1.6'/></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23e0eff4'/><rect x='8' y='7' width='16' height='19' fill='%2331333d'/><rect x='6' y='7' width='20' height='3' fill='%23e9bba9'/><rect x='6' y='14' width='20' height='3' fill='%23e9bba9'/><rect x='6' y='21' width='20' height='3' fill='%23e9bba9'/><circle cx='12' cy='12' r='3' fill='%23729a49'/><circle cx='20' cy='19' r='3' fill='%238fb857'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ciel-haut:#cfe4ea;
-    --ciel-bas:#eef5f3;
-    --encre:#2e3a38;
-    --encre-douce:#56655f;
-    --filet:rgba(46,58,56,.18);
+    --ciel-haut:#d9ecf1;
+    --ciel-bas:#f1f8fa;
+    --encre:#2b3138;
+    --encre-douce:#5d6b72;
+    --filet:rgba(43,49,56,.16);
+    --accent:#6f9a49;
     --gouttiere:3vw;
   }
 
@@ -32,7 +33,7 @@
     overflow-x:hidden;
     -webkit-font-smoothing:antialiased;
   }
-  ::selection{background:rgba(100,122,78,.22)}
+  ::selection{background:rgba(111,154,73,.22)}
 
   #scene{position:sticky;top:0;height:100vh;height:100svh;width:100%;z-index:0}
   #scene svg{display:block;width:100%;height:100%}
@@ -46,7 +47,7 @@
   }
   #entete::before{
     content:"";position:absolute;left:0;right:0;top:0;bottom:-34px;z-index:-1;
-    background:linear-gradient(180deg,rgba(238,245,243,.94) 0%,rgba(238,245,243,.6) 46%,rgba(238,245,243,0) 100%);
+    background:linear-gradient(180deg,rgba(241,248,250,.94) 0%,rgba(241,248,250,.6) 46%,rgba(241,248,250,0) 100%);
   }
   .marque{font-weight:600;font-size:.98rem;letter-spacing:.01em}
   .meta{font-size:.64rem;font-weight:500;letter-spacing:.17em;
@@ -54,7 +55,7 @@
 
   #voile-bas{
     position:fixed;left:0;right:0;bottom:0;height:74px;z-index:2;pointer-events:none;
-    background:linear-gradient(0deg,rgba(238,245,243,.86) 0%,rgba(238,245,243,.42) 48%,rgba(238,245,243,0) 100%);
+    background:linear-gradient(0deg,rgba(241,248,250,.86) 0%,rgba(241,248,250,.42) 48%,rgba(241,248,250,0) 100%);
   }
 
   #indice{
@@ -65,7 +66,7 @@
   }
   #indice .rail{position:relative;width:1px;height:40px;background:var(--filet);overflow:hidden}
   #indice .rail::after{content:"";position:absolute;left:0;top:0;width:1px;height:13px;
-    background:#647a4e;animation:descend 2.2s cubic-bezier(.5,0,.5,1) infinite}
+    background:var(--accent);animation:descend 2.2s cubic-bezier(.5,0,.5,1) infinite}
   @keyframes descend{0%{transform:translateY(-110%)}100%{transform:translateY(320%)}}
 
   #compteur{
@@ -76,32 +77,41 @@
   #compteur b{color:var(--encre);font-weight:600}
 
   #progression{position:fixed;left:0;right:0;bottom:0;z-index:3;height:2px;
-    background:rgba(46,58,56,.08);pointer-events:none}
-  #progression i{display:block;height:100%;width:100%;background:#647a4e;
+    background:rgba(43,49,56,.08);pointer-events:none}
+  #progression i{display:block;height:100%;width:100%;background:var(--accent);
     transform:scaleX(0);transform-origin:0 50%}
 
   /* ================================================================
      Le dessin niveau par niveau. La position dans le monde est portee
      par l'ATTRIBUT transform du SVG, l'animation par la PROPRIETE
      transform du CSS : sur un meme element la seconde ecrase la
-     premiere et le niveau perd sa place.
+     premiere et le niveau perd sa place. D'ou les groupes imbriques.
      ================================================================ */
-  .niveau{opacity:0;transform:translate(0,34px);
-    transition:opacity .6s ease,transform .6s cubic-bezier(.22,.68,.16,1)}
+  .niveau{opacity:0;transform:translate(0,30px);
+    transition:opacity .62s ease,transform .62s cubic-bezier(.22,.68,.16,1)}
   .niveau.vu{opacity:1;transform:translate(0,0)}
-  .niveau .verdure{opacity:0;transform:translate(0,16px);
-    transition:opacity .66s ease .18s,transform .66s cubic-bezier(.22,.68,.16,1) .18s}
+  .niveau .verdure{opacity:0;transform:translate(0,14px);
+    transition:opacity .68s ease .2s,transform .68s cubic-bezier(.22,.68,.16,1) .2s}
   .niveau.vu .verdure{opacity:1;transform:translate(0,0)}
 
-  /* ---- les fenetres, pretes pour les boutons ---- */
-  .fenetre .halo{opacity:0;transition:opacity .18s ease}
-  .fenetre .dormant{transition:fill .18s ease}
-  .fenetre.cliquable{cursor:pointer}
-  .fenetre.cliquable:hover .halo,
-  .fenetre.cliquable:focus-visible .halo{opacity:1}
-  .fenetre.cliquable:hover .dormant,
-  .fenetre.cliquable:focus-visible .dormant{fill:#fff6e4}
-  .fenetre:focus{outline:none}
+  /* ---- les baies, pretes pour les boutons ----
+     Le cadre clair reste visible au repos : sans trait d'encre dans ce
+     dessin, c'est lui qui dit ou l'on pourra cliquer. ---- */
+  /* La verdure passe DEVANT les baies : sans cette regle elle capte le
+     survol et le clic a sa place, et une moitie de chaque baie devient
+     inerte. C'est du decor, ca ne doit rien intercepter. */
+  .verdure{pointer-events:none}
+  .baie .cadre{stroke:rgba(214,234,240,.26);transition:stroke .2s ease,stroke-width .2s ease}
+  .baie .halo{opacity:0;transition:opacity .2s ease}
+  .baie .vitrage{transition:opacity .2s ease}
+  .baie.cliquable{cursor:pointer}
+  .baie.cliquable:hover .cadre,
+  .baie.cliquable:focus-visible .cadre{stroke:#f4e2c6;stroke-width:3.4}
+  .baie.cliquable:hover .halo,
+  .baie.cliquable:focus-visible .halo{opacity:1}
+  .baie.cliquable:hover .vitrage,
+  .baie.cliquable:focus-visible .vitrage{opacity:.4}
+  .baie:focus{outline:none}
 
   @media (prefers-reduced-motion:reduce){
     html{scroll-behavior:auto}
@@ -119,10 +129,10 @@
 
 <header id="entete">
   <div class="marque">L'immeuble</div>
-  <p class="meta">Trois étages, dessinés un à un</p>
+  <p class="meta">Quatre étages, dessinés un à un</p>
 </header>
 
-<div id="scene"><svg id="toile" role="img" aria-label="Illustration d'une maison de ville plantée, vue en trois quarts, du ciel jusqu'à la rue"></svg></div>
+<div id="scene"><svg id="toile" role="img" aria-label="Illustration d'un immeuble planté vu de face, du ciel jusqu'à la rue"></svg></div>
 <div id="defilement" aria-hidden="true"></div>
 <div id="voile-bas" aria-hidden="true"></div>
 
@@ -136,45 +146,58 @@
 /* ==================================================================
  * 1. PALETTE
  *    Relevee par echantillonnage de l'illustration de reference.
- *    Chaque volume porte trois valeurs : la face vue de face, le cote
- *    droit plus sombre, le dessus plus clair. C'est ce triplet, et lui
- *    seul, qui donne le relief — il n'y a aucun calcul de lumiere.
+ *    Ce dessin-ci n'a AUCUN trait de contour : les formes se separent
+ *    par la valeur seule. C'est ce qui lui donne son aspect vectoriel
+ *    plat et moderne — ajouter un cerne le ferait basculer ailleurs.
  * ================================================================== */
 const C = {
-  trait:      '#3c4a48',
-  traitFin:   '#56655f',
-  garde:      '#45544b',
-
-  cielHaut:   '#cfe4ea',
-  cielBas:    '#eef5f3',
+  cielHaut:   '#d9ecf1',
+  cielBas:    '#f1f8fa',
+  brume:      '#eaf4f7',
   nuage:      '#ffffff',
-  oiseau:     '#4c5b58',
+  oiseau:     '#8ca4ac',
 
-  vitre:      '#cfd9d4',
-  vitreHaut:  '#e3eae6',
-  chaud:      '#f1e0c6',
-  chaudVif:   '#f8d79b',
-  brun:       '#85705a',
-  brunClair:  '#a0866c',
-  souche:     '#c08a68',
+  loin1:      '#d7e5eb',   /* tours du fond, les plus pales   */
+  loin2:      '#cbdce4',
+  loin3:      '#bfd2dc',
+  loin4:      '#aec3cf',   /* celles qui passent devant       */
 
-  vertClair:  '#9cbb6e',
-  vertMoyen:  '#647a4e',
-  vertSombre: '#44582f',
-  terre:      '#9a6b4d',
+  facade:     '#31333d',
+  facadeHaut: '#3a3d48',
+  facadeOmbre:'#24262d',
+  pilier:     '#393c47',
 
-  sol:        '#dfe7e2',
-  trottoir:   '#cad6ce',
-  rue:        '#b6c4bd',
-  buisson:    '#7c9a5c',
-};
-const VOL = {
-  turquoise:  { face: '#89bfad', cote: '#5f8478', dessus: '#a7d4c4' },
-  turquoiseF: { face: '#7ab3a2', cote: '#516a5f', dessus: '#93c6b5' },
-  jaune:      { face: '#f3cc8e', cote: '#c5a06b', dessus: '#fbe0ae' },
-  corail:     { face: '#e6996e', cote: '#b97550', dessus: '#f3b48e' },
-  dalle:      { face: '#f4f1ea', cote: '#d6d1c4', dessus: '#ffffff' },
-  toiture:    { face: '#6fa797', cote: '#4e6e64', dessus: '#8dc0b0' },
+  vitre:      '#3c3f4e',
+  vitreB:     '#454959',
+  vitreClair: '#565d71',
+  vitrePale:  '#7b94a4',
+  reflet:     '#bcd3dc',
+  chaud:      '#d9bd91',
+
+  dalle:      '#e9bba9',
+  dalleHaut:  '#f4d4c5',
+  dalleOmbre: '#d2967f',
+
+  toitVol:    '#5c5564',
+  toitVolHaut:'#6f6878',
+  toitVolOmb: '#403949',
+
+  bac:        '#7d5141',
+  bacHaut:    '#96644d',
+  bacOmbre:   '#5e3c30',
+  tronc:      '#6d5341',
+  troncClair: '#866a54',
+
+  v1:         '#3a5a2c',   /* du plus sombre au plus clair    */
+  v2:         '#4d7236',
+  v3:         '#648c42',
+  v4:         '#7da84d',
+  v5:         '#9cc25a',
+  v6:         '#b6d775',
+
+  sol:        '#e3ecee',
+  solOmbre:   '#d2dee1',
+  bordure:    '#c7d5d9',
 };
 
 /* ==================================================================
@@ -190,9 +213,11 @@ function mulberry32(a) {
     return ((t ^ t >>> 14) >>> 0) / 4294967296;
   };
 }
-let rnd = mulberry32(0x2C1F);
+let rnd = mulberry32(0x5A13);
 const rr = (a, b) => a + (b - a) * rnd();
 const ri = (a, b) => Math.floor(rr(a, b + 1));
+const choix = t => t[Math.floor(rnd() * t.length)];
+const n1 = v => (+v).toFixed(1);
 
 function el(parent, nom, attrs) {
   const n = document.createElementNS(NS, nom);
@@ -202,376 +227,488 @@ function el(parent, nom, attrs) {
 }
 const g = (parent, attrs) => el(parent, 'g', attrs || {});
 
-/* ==================================================================
- * 3. LA PROJECTION
- *    Axonometrie oblique : z part vers le fond, c'est-a-dire vers la
- *    droite et vers le haut de l'ecran. On voit donc la face avant, le
- *    cote droit et les dessus — exactement les trois faces de la
- *    reference. Les verticales restent verticales, rien ne fuit.
- * ================================================================== */
-const DX = .46, DY = .27;
-const px = (x, z) => x + z * DX;
-const py = (y, z) => y - z * DY;
-const pt = (x, y, z) => `${px(x, z).toFixed(1)},${py(y, z).toFixed(1)}`;
-
-function face(parent, coins, fill, opt = {}) {
-  return el(parent, 'polygon', {
-    points: coins.map(c => pt(c[0], c[1], c[2])).join(' '),
-    fill,
-    stroke: opt.trait === null ? undefined : (opt.trait || C.trait),
-    'stroke-width': opt.ep ?? 3,
-    'stroke-linejoin': 'round',
-    class: opt.class,
-  });
-}
-
-/* une boite : dessus, cote droit, face avant, dans cet ordre — la face
-   avant est la plus proche, donc la derniere posee. */
-function boite(parent, x, y, z, w, h, d, t, opt = {}) {
-  const x1 = x + w, y1 = y + h, z1 = z + d;
-  const b = g(parent, opt.attrs);
-  if (opt.dessus !== false) face(b, [[x, y, z], [x1, y, z], [x1, y, z1], [x, y, z1]], t.dessus, opt);
-  face(b, [[x1, y, z], [x1, y, z1], [x1, y1, z1], [x1, y1, z]], t.cote, opt);
-  face(b, [[x, y, z], [x1, y, z], [x1, y1, z], [x, y1, z]], t.face, opt);
-  return b;
-}
-
-function ligne(parent, a, b, col, ep) {
-  return el(parent, 'line', {
-    x1: px(a[0], a[2]).toFixed(1), y1: py(a[1], a[2]).toFixed(1),
-    x2: px(b[0], b[2]).toFixed(1), y2: py(b[1], b[2]).toFixed(1),
-    stroke: col || C.trait, 'stroke-width': ep ?? 3, 'stroke-linecap': 'round',
-  });
-}
+const rect = (p, x, y, w, h, fill, o = {}) => el(p, 'rect', {
+  x: n1(x), y: n1(y), width: n1(Math.max(0, w)), height: n1(Math.max(0, h)),
+  fill, rx: o.rx, opacity: o.op, class: o.class,
+});
+const poly = (p, pts, fill, o = {}) => el(p, 'polygon', {
+  points: pts.map(c => `${n1(c[0])},${n1(c[1])}`).join(' '), fill, opacity: o.op, class: o.class,
+});
+const ell = (p, cx, cy, rx, ry, fill, o = {}) => el(p, 'ellipse', {
+  cx: n1(cx), cy: n1(cy), rx: n1(rx), ry: n1(ry), fill, opacity: o.op,
+  transform: o.rot !== undefined ? `rotate(${n1(o.rot)} ${n1(cx)} ${n1(cy)})` : undefined,
+});
 
 /* ==================================================================
- * 4. VEGETATION
- *    Des masses bombees, batites d'ellipses qui se chevauchent, avec
- *    un contour unique pose par-dessous : chaque ellipse cerclee
- *    aurait fait apparaitre les traits interieurs.
+ * 3. LA VEGETATION
+ *    Elle fait la moitie du dessin : trois gestes seulement, mais
+ *    chacun decline en plusieurs valeurs de vert pour que la masse ne
+ *    soit jamais plate.
  * ================================================================== */
-function feuillage(parent, cx, cy, larg, haut, dens = 1) {
+
+/* un massif : un amas de petits lobes ronds, sombres en bas a droite,
+   clairs en haut a gauche. Beaucoup de petits lobes plutot que peu de
+   gros — c'est ce qui donne la texture de feuillage de la reference. */
+function massif(parent, cx, cy, larg, haut, opt = {}) {
   const m = g(parent, {});
-  const lobes = [];
+  const dens = opt.dens ?? 1;
   const couches = [
-    { col: C.vertSombre, n: Math.round(4 * dens), dx:  .12, dy:  .14, r: [.30, .46] },
-    { col: C.vertMoyen,  n: Math.round(5 * dens), dx:  .00, dy: -.04, r: [.26, .40] },
-    { col: C.vertClair,  n: Math.round(4 * dens), dx: -.16, dy: -.22, r: [.18, .30] },
+    { col: C.v1, n: 7, dx:  .10, dy:  .26, r: [.15, .26] },
+    { col: C.v2, n: 8, dx:  .16, dy:  .08, r: [.14, .24] },
+    { col: C.v3, n: 9, dx: -.02, dy: -.04, r: [.13, .23] },
+    { col: C.v4, n: 7, dx: -.16, dy: -.18, r: [.11, .19] },
+    { col: C.v5, n: 5, dx: -.24, dy: -.28, r: [.08, .15] },
   ];
-  for (const c of couches) for (let i = 0; i < c.n; i++) {
-    const r = haut * rr(c.r[0], c.r[1]);
-    lobes.push({
-      cx: cx + (c.dx + rr(-.30, .30)) * larg,
-      cy: cy + c.dy * haut + rr(-.12, .12) * haut,
-      rx: r, ry: r * rr(.76, .95), col: c.col,
-    });
-  }
-  /* le contour : les memes lobes, en plus gros, sans remplissage */
-  for (const l of lobes) {
-    el(m, 'ellipse', { cx: l.cx.toFixed(1), cy: l.cy.toFixed(1),
-                       rx: (l.rx + 2.2).toFixed(1), ry: (l.ry + 2.2).toFixed(1), fill: C.trait });
-  }
-  for (const l of lobes) {
-    el(m, 'ellipse', { cx: l.cx.toFixed(1), cy: l.cy.toFixed(1),
-                       rx: l.rx.toFixed(1), ry: l.ry.toFixed(1), fill: l.col });
+  if (opt.clair) couches.push({ col: C.v6, n: 4, dx: -.28, dy: -.34, r: [.06, .11] });
+  for (const c of couches) {
+    const n = Math.max(2, Math.round(c.n * dens));
+    for (let i = 0; i < n; i++) {
+      const r = haut * rr(c.r[0], c.r[1]);
+      ell(m,
+        cx + (c.dx + rr(-.34, .34)) * larg * .5,
+        cy + (c.dy + rr(-.16, .16)) * haut * .5,
+        r, r * rr(.80, 1.0), c.col);
+    }
   }
   return m;
 }
 
-/* un bac et sa plante, poses a plat sur un balcon */
-function bac(parent, x, y, z, larg) {
-  const h = 26, prof = 34;
-  boite(parent, x, y - h, z, larg, h, prof, { face: C.terre, cote: '#7d5339', dessus: '#b07f5c' }, { ep: 2.6 });
-  feuillage(parent, px(x + larg / 2, z + prof / 2), py(y - h - 14, z + prof / 2),
-            larg * 1.15, rr(42, 62), 1);
+/* une retombee : la verdure qui passe par-dessus le bord de la dalle.
+   Une VRILLE fine et sombre, feuillue sur toute sa longueur. Deux
+   impasses evitees ici : des tiges longues, fines et regulieres font
+   une rangee de chenilles accrochees au bandeau ; des langues larges et
+   claires pendent comme des cocons detaches de la plante. Il faut du
+   fin, du court, du sombre, et des feuilles serrees. */
+function retombee(parent, x, y, lg, opt = {}) {
+  const r = g(parent, {});
+  const col = opt.col || choix([C.v1, C.v2]);
+  const larg = opt.larg ?? rr(5, 9);
+  const biais = rr(-11, 11);
+  el(r, 'path', {
+    d: `M${n1(x - larg / 2)} ${n1(y)} `
+     + `Q${n1(x - larg * .3 + biais * .5)} ${n1(y + lg * .6)} ${n1(x + biais)} ${n1(y + lg)} `
+     + `Q${n1(x + larg * .3 + biais * .5)} ${n1(y + lg * .6)} ${n1(x + larg / 2)} ${n1(y)} Z`,
+    fill: col,
+  });
+  const nf = ri(3, 6);
+  for (let i = 0; i < nf; i++) {
+    const t = (i + rr(.15, .85)) / nf;
+    ell(r, x + biais * t + rr(-6, 6), y + lg * t,
+        rr(4, 6.5), rr(3, 5), rnd() < .45 ? C.v2 : C.v3, { rot: rr(-55, 55) });
+  }
+  return r;
+}
+
+/* une touffe dressee : quelques brins fins qui depassent du massif */
+function touffe(parent, x, y, haut) {
+  const t = g(parent, {});
+  for (let i = 0; i < ri(4, 7); i++) {
+    const h = haut * rr(.6, 1), dx = rr(-14, 14);
+    el(t, 'path', {
+      d: `M${n1(x - 2.4)} ${n1(y)} Q${n1(x + dx * .4)} ${n1(y - h * .6)} ${n1(x + dx)} ${n1(y - h)} `
+       + `Q${n1(x + dx * .4 + 3)} ${n1(y - h * .6)} ${n1(x + 2.4)} ${n1(y)} Z`,
+      fill: rnd() < .5 ? C.v3 : C.v4,
+    });
+  }
+  return t;
+}
+
+/* une jardiniere et ce qui pousse dedans. Le bac reste bas et la masse
+   descend par-dessus : sur la reference on ne voit du bac qu'un lisere
+   de terre cuite sous la verdure. */
+function bac(parent, x, y, larg, haut, opt = {}) {
+  const b = g(parent, {});
+  const hb = opt.hb ?? 23;
+  rect(b, x, y - hb, larg, hb, C.bac);
+  rect(b, x, y - hb, larg, 4, C.bacHaut);
+  rect(b, x, y - 5, larg, 5, C.bacOmbre);
+  const cx = x + larg / 2;
+  massif(b, cx, y - hb - haut * .40, larg * rr(1.2, 1.6), haut, opt);
+  if (rnd() < .5) touffe(b, cx + rr(-larg * .3, larg * .3), y - hb - haut * .45, haut * rr(.5, .8));
+  return b;
+}
+
+/* UNE BANDE PLANTEE sur toute la longueur d'une dalle.
+   Les masses se posent a un pas plus COURT que leur largeur : c'est ce
+   chevauchement qui fait une jardiniere continue. Espacees, elles se
+   lisaient comme une rangee de pompons poses les uns a cote des
+   autres. */
+function bandePlantee(parent, x, larg, y, opt = {}) {
+  const b = g(parent, {});
+  const dense = !!opt.dense;
+
+  /* Deux a quatre GROUPES par dalle, separes par des pleins de
+     vitrage. Une bande continue d'un bout a l'autre etouffait la
+     facade : on ne voyait plus l'immeuble, seulement une haie. */
+  const nG = dense ? 4 : ri(3, 4);
+  const pas = larg / nG;
+  for (let i = 0; i < nG; i++) {
+    const gw = pas * rr(.40, .62);
+    const gx = x + i * pas + rr(0, pas - gw);
+    /* chaque groupe a sa propre stature : c'est ce qui donne le profil
+       irregulier de la reference, pas le hasard massif par massif */
+    const hG = rr(dense ? 88 : 64, dense ? 132 : 112);
+
+    /* 1. le bac, pose en premier et RENTRE sous la verdure : a largeur
+          egale, il depassait de part et d'autre et la dalle se lisait
+          comme une poutre de terre cuite. */
+    rect(b, gx + 7, y - 22, gw - 14, 22, C.bac);
+    rect(b, gx + 7, y - 22, gw - 14, 4, C.bacHaut);
+    rect(b, gx + 7, y - 5, gw - 14, 5, C.bacOmbre);
+
+    /* 2. les masses, a un pas plus court que leur largeur, et plus
+          larges que le bac pour le couvrir */
+    for (let mx = gx - 2; mx < gx + gw + 2; mx += 40 * rr(.8, 1.2)) {
+      const h = hG * rr(.74, 1.2);
+      massif(b, mx, y - 14 - h * .42, h * rr(1.4, 1.85), h,
+             { dens: dense ? 1.2 : 1.05, clair: rnd() < .55 });
+      if (rnd() < .26) touffe(b, mx + rr(-18, 18), y - 20, hG * rr(.4, .66));
+    }
+
+    /* 3. ce qui passe par-dessus le bord, sous ce groupe seulement.
+          Courtes et nombreuses, elles se dispersaient en mouchetis vert
+          tout le long du bandeau. */
+    for (let r = 0; r < ri(1, 3); r++) {
+      retombee(b, gx + rr(4, gw - 4), y + DALLE - 3, rr(22, 54));
+    }
+  }
+  return b;
+}
+
+/* un arbre de pleine terre, pour le pied de l'immeuble */
+function arbre(parent, x, sol, haut) {
+  const a = g(parent, {});
+  const tronc = haut * rr(.30, .40), lt = haut * .044;
+  ell(a, x, sol + 4, haut * .30, haut * .045, C.solOmbre);
+  el(a, 'path', {
+    d: `M${n1(x - lt)} ${n1(sol)} L${n1(x - lt * .62)} ${n1(sol - tronc)} `
+     + `L${n1(x + lt * .62)} ${n1(sol - tronc)} L${n1(x + lt)} ${n1(sol)} Z`,
+    fill: C.tronc,
+  });
+  rect(a, x - lt * .3, sol - tronc, lt * .5, tronc, C.troncClair, { op: .5 });
+  massif(a, x, sol - tronc - haut * .32, haut * .92, haut * .74, { dens: 1.25, clair: true });
+  return a;
 }
 
 /* ==================================================================
- * 5. LE GABARIT
+ * 4. LE GABARIT
  * ================================================================== */
-const H = 232;                 /* hauteur d'un niveau            */
-const NIVEAUX = 3;             /* trois etages, plus le rez      */
-const TOIT_H = 150, RDC_H = 196, BALCON = 74, DALLE_H = 15, GARDE_H = 56;
-const PROF = 176;              /* profondeur du bati             */
-
-/* chaque niveau a sa teinte, sa largeur et son decalage : c'est ce
-   decrochement qui donne l'empilement de volumes de la reference. */
-const PLAN = [
-  { x:  26, w: 286, t: VOL.turquoise },
-  { x:   0, w: 330, t: VOL.jaune },
-  { x:  16, w: 312, t: VOL.corail },
-];
-const RDC = { x: 6, w: 330, t: VOL.turquoiseF };
-const EMPRISE = 336;
+const LARG = 620;        /* largeur de la facade               */
+const OVER = 24;         /* debord des dalles de chaque cote   */
+const DALLE = 27;        /* epaisseur du bandeau saumon        */
+const H = 214;           /* hauteur d'un etage                 */
+const NIVEAUX = 4;       /* quatre etages, plus le rez         */
+const RDC_H = 238;
+const TOIT_H = 162;      /* le volume en attique, sur le toit  */
+const BAIES = 3;         /* baies cliquables par etage         */
+const BAT_H = TOIT_H + NIVEAUX * H + RDC_H;   /* hauteur batie totale */
 
 function gabarit() {
   const ratio = innerWidth / innerHeight;
-  /* largeur occupee a l'ecran, overhangs et fuyante compris */
-  const BW = EMPRISE + PROF * DX + BALCON * DX + 40;
-  const part = ratio > 1.3 ? .56 : ratio > .8 ? .70 : .94;
+  const BW = LARG + OVER * 2;
+  /* Sur la reference le batiment touche presque les deux bords et les
+     arbres n'entrent que par les coins. Une emprise de 44 % le laissait
+     flotter au milieu d'un ciel vide. */
+  let part = ratio > 1.5 ? .62 : ratio > 1.1 ? .70 : ratio > .78 ? .84 : .96;
+  /* La fenetre de visee ne doit JAMAIS etre assez haute pour contenir
+     tout l'immeuble. Sur un telephone, large de 668 pour 1256 de haut,
+     le batiment est plus trapu que l'ecran : affiche en entier il tenait
+     d'un coup dans la vue, les cinq niveaux s'allumaient ensemble et le
+     dessin etage par etage disparaissait. On l'elargit donc jusqu'a ce
+     qu'il deborde du cadre — les dalles sortent des deux cotes, ce qui
+     est exactement le cadrage de la reference. */
+  part = Math.min(1.5, Math.max(part, BW / (ratio * .86 * BAT_H)));
   const VW = Math.round(BW / part);
-  return { BW, VW, x0: Math.round((VW - BW) / 2 + BALCON * DX) };
+  return { BW, VW, x0: Math.round((VW - LARG) / 2) };
+}
+
+/* ==================================================================
+ * 5. UNE BAIE
+ *    C'est la future cible des boutons : un groupe nomme par son etage
+ *    et son rang, avec un cadre clair visible au repos pour qu'on
+ *    devine la zone, et un halo qui s'allume au survol.
+ * ================================================================== */
+function baie(parent, i, k, x, y, w, h) {
+  const b = g(parent, { class: 'baie', id: `baie-${i}-${k}`,
+                        'data-etage': i, 'data-travee': k });
+
+  /* le fond de loge, plus sombre que la facade : la baie s'enfonce */
+  rect(b, x - 5, y - 5, w + 10, h + 10, C.facadeOmbre, { rx: 2 });
+
+  /* les panneaux vitres, separes par des meneaux de facade */
+  const np = 3, ecart = 5;
+  const pw = (w - ecart * (np - 1)) / np;
+  for (let p = 0; p < np; p++) {
+    const px = x + p * (pw + ecart);
+    const d = rnd();
+    const fond = d < .10 ? C.vitrePale : d < .26 ? C.vitreClair : d < .60 ? C.vitreB : C.vitre;
+    rect(b, px, y, pw, h, fond);
+    /* le reflet du ciel : une bande oblique en haut du panneau, assez
+       rare pour rester un accent et non un voile general */
+    if (d < .34) {
+      poly(b, [[px, y], [px + pw, y], [px + pw, y + h * .28],
+               [px, y + h * .50]], C.reflet, { op: d < .10 ? .26 : .13 });
+    }
+    /* une traverse basse, qui pose le panneau */
+    rect(b, px, y + h - h * .17, pw, 2.4, C.facadeHaut, { op: .8 });
+  }
+
+  /* le cadre : discret au repos, franc au survol */
+  el(b, 'rect', { class: 'cadre', x: n1(x - 5), y: n1(y - 5),
+                  width: n1(w + 10), height: n1(h + 10), rx: 2,
+                  fill: 'none', 'stroke-width': 2 });
+  /* le vitrage qui s'eclaircit au survol */
+  /* teinte CHAUDE : un blanc casse pose sur du verre sombre vire au
+     gris et la baie survolee se depolissait au lieu de s'allumer */
+  rect(b, x, y, w, h, '#f7dfae', { class: 'vitrage', op: 0 });
+  /* le halo, invisible au repos */
+  el(b, 'rect', { class: 'halo', x: n1(x - 12), y: n1(y - 12),
+                  width: n1(w + 24), height: n1(h + 24), rx: 5,
+                  fill: 'none', stroke: '#f4e2c6', 'stroke-width': 5, 'stroke-opacity': .5 });
+  return b;
 }
 
 /* ==================================================================
  * 6. UN NIVEAU
+ *    Bande [0, H] en coordonnees locales :
+ *      - la dalle saumon occupe le haut, [0, DALLE]
+ *      - la facade et ses baies occupent le reste
+ *      - les jardinieres posees SUR cette dalle poussent vers le HAUT,
+ *        donc devant le vitrage du niveau au-dessus, deja dessine
+ *      - les retombees pendent vers le BAS, devant sa propre facade
+ *    D'ou l'ordre : facade, baies, dalle, retombees, plantations.
  * ================================================================== */
-function fenetre(parent, i, k, fx, fy, fw, fh, z, allumee) {
-  const b = g(parent, { class: 'fenetre', id: `fenetre-${i}-${k}`,
-                        'data-etage': i, 'data-travee': k });
-  const X = px(fx, z), Y = py(fy, z);
-
-  /* le dormant clair, qui detache la baie de la facade coloree */
-  el(b, 'rect', { class: 'dormant', x: (X - 7).toFixed(1), y: (Y - 7).toFixed(1),
-                  width: fw + 14, height: fh + 14, rx: 3,
-                  fill: C.vitreHaut, stroke: C.trait, 'stroke-width': 3 });
-  el(b, 'rect', { x: X.toFixed(1), y: Y.toFixed(1), width: fw, height: fh,
-                  fill: allumee ? C.chaudVif : C.vitre,
-                  stroke: C.trait, 'stroke-width': 2.6 });
-
-  if (allumee) {
-    /* une plante en pot derriere la vitre : on devine quelqu'un */
-    const sx = X + fw * (k % 2 ? .28 : .72), sy = Y + fh - 12;
-    el(b, 'path', { d: `M${(sx - 8).toFixed(1)} ${(sy - 14).toFixed(1)} h16 l-2 14 h-12 Z`, fill: C.brun });
-    for (let n = 0; n < 4; n++) {
-      const a = -Math.PI / 2 + (n - 1.5) * .46, lg = rr(13, 21);
-      const ex = sx + Math.cos(a) * lg * .55, ey = sy - 14 + Math.sin(a) * lg * .5;
-      el(b, 'ellipse', { cx: ex.toFixed(1), cy: ey.toFixed(1),
-                         rx: rr(4, 6).toFixed(1), ry: (lg * .4).toFixed(1), fill: C.vertMoyen,
-                         transform: `rotate(${(a * 180 / Math.PI + 90).toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)})` });
-    }
-  }
-  /* un meneau et une traverse : la baie se lit comme une menuiserie */
-  el(b, 'line', { x1: (X + fw / 2).toFixed(1), y1: Y.toFixed(1),
-                  x2: (X + fw / 2).toFixed(1), y2: (Y + fh).toFixed(1),
-                  stroke: C.trait, 'stroke-width': 2.6 });
-  el(b, 'line', { x1: X.toFixed(1), y1: (Y + fh * .42).toFixed(1),
-                  x2: (X + fw).toFixed(1), y2: (Y + fh * .42).toFixed(1),
-                  stroke: C.trait, 'stroke-width': 2.2 });
-  /* l'appui */
-  el(b, 'rect', { x: (X - 12).toFixed(1), y: (Y + fh + 7).toFixed(1), width: fw + 24, height: 9,
-                  rx: 2, fill: VOL.dalle.face, stroke: C.trait, 'stroke-width': 2.6 });
-  /* le halo de survol, invisible au repos */
-  el(b, 'rect', { class: 'halo', x: (X - 15).toFixed(1), y: (Y - 15).toFixed(1),
-                  width: fw + 30, height: fh + 42, rx: 6,
-                  fill: C.vertClair, 'fill-opacity': .16,
-                  stroke: C.vertMoyen, 'stroke-width': 6 });
-  return b;
-}
-
-function gardeCorps(parent, x, y, z, w, d) {
-  const q = g(parent, {});
-  const yh = y - GARDE_H;
-  /* lisse basse et haute, sur l'avant puis sur le cote droit */
-  for (const [a, b] of [[[x, y, z], [x + w, y, z]], [[x, yh, z], [x + w, yh, z]],
-                        [[x + w, y, z], [x + w, y, z + d]], [[x + w, yh, z], [x + w, yh, z + d]]]) {
-    ligne(q, a, b, C.garde, 4);
-  }
-  for (let bx = x + 10; bx < x + w - 4; bx += 21) ligne(q, [bx, y, z], [bx, yh, z], C.garde, 3);
-  for (let bz = z + 14; bz < z + d - 4; bz += 21) ligne(q, [x + w, y, bz], [x + w, yh, bz], C.garde, 3);
-  return q;
-}
-
-function niveau(parent, i, G, Y) {
+function etage(parent, i, G, Y, opt = {}) {
   const { x0 } = G;
-  const p = PLAN[i];
-  const bx = x0 + p.x, bas = Y + H;
-
   const place = g(parent, { transform: `translate(0, ${Y})` });
   const n = g(place, { class: 'niveau', 'data-y': Y, 'data-etage': i });
 
-  /* 1. le volume habite */
-  boite(n, bx, 0, 0, p.w, H, PROF, p.t);
+  const haut = opt.haut ?? H;
 
-  /* 2. deux baies sur la face avant */
-  const fw = Math.round((p.w - 76) / 2) - 16, fh = H - 118;
-  for (let k = 0; k < 2; k++) {
-    fenetre(n, i, k, bx + 30 + k * (fw + 44), 34, fw, fh, 0, (i + k) % 3 !== 1);
+  /* --- 1. la facade --- */
+  rect(n, x0, DALLE, LARG, haut - DALLE, C.facade);
+  /* les piliers d'angle, un ton au-dessus : la facade n'est pas un aplat */
+  rect(n, x0, DALLE, 16, haut - DALLE, C.pilier);
+  rect(n, x0 + LARG - 16, DALLE, 16, haut - DALLE, C.pilier);
+  /* l'ombre que la dalle porte sur la facade */
+  rect(n, x0, DALLE, LARG, 10, C.facadeOmbre, { op: .55 });
+
+  /* --- 2. les baies --- */
+  const marge = 34, ecart = 18;
+  const bw = (LARG - marge * 2 - ecart * (BAIES - 1)) / BAIES;
+  const by = DALLE + 30, bh = haut - DALLE - 64;
+  for (let k = 0; k < BAIES; k++) {
+    baie(n, i, k, x0 + marge + k * (bw + ecart), by, bw, bh);
   }
-  /* 3. une baie sur le cote droit, en fuyante — decor, pas une cible */
-  face(n, [[bx + p.w, 44, 36], [bx + p.w, 44, 36 + 74], [bx + p.w, 44 + fh * .8, 36 + 74],
-           [bx + p.w, 44 + fh * .8, 36]], C.vitre, { ep: 2.6 });
 
-  /* 4. la dalle du balcon, qui deborde vers l'avant et sur la droite */
-  const dx0 = bx - 14, dw = p.w + 28;
-  boite(n, dx0, H - DALLE_H, -BALCON, dw, DALLE_H, BALCON + PROF + 14, VOL.dalle, { ep: 3 });
+  /* --- 3. la dalle --- */
+  rect(n, x0 - OVER, 0, LARG + OVER * 2, DALLE, C.dalle);
+  rect(n, x0 - OVER, 0, LARG + OVER * 2, 6, C.dalleHaut);
+  rect(n, x0 - OVER, DALLE - 6, LARG + OVER * 2, 6, C.dalleOmbre);
 
-  /* 5. le garde-corps */
-  gardeCorps(n, dx0, H - DALLE_H, -BALCON, dw, BALCON);
-
-  /* 6. ce qui pousse sur le balcon */
+  /* --- 4. la plantation, d'un bout a l'autre de la dalle --- */
   const v = g(n, { class: 'verdure' });
-  const nbBacs = 2 + (i % 2);
-  for (let b = 0; b < nbBacs; b++) {
-    const lg = rr(54, 88);
-    bac(v, dx0 + 16 + b * ((dw - 70) / nbBacs), H - DALLE_H, -BALCON + 18, lg);
+  bandePlantee(v, x0 - OVER + 6, LARG + OVER * 2 - 12, 0, { dense: opt.dense });
+  /* un sujet qui monte plus haut, pour casser la ligne */
+  if (opt.dense || rnd() < .7) {
+    massif(v, x0 + rr(40, LARG - 40), -rr(50, opt.dense ? 150 : 90),
+           rr(120, 180), rr(85, 140), { dens: 1.15, clair: true });
   }
-  bac(v, bx + p.w - 10, H - DALLE_H, -BALCON + 26, 46);
-
   return n;
 }
 
 /* ==================================================================
  * 7. LE MONDE
  * ================================================================== */
-let G, MONDE_H, CIEL_H, SOL_Y;
+let G, MONDE_H, CIEL_H, SOL_Y, Y0;
 
 function construire() {
-  rnd = mulberry32(0x2C1F);
+  rnd = mulberry32(0x5A13);
   G = gabarit();
   const { VW, x0 } = G;
 
-  CIEL_H = 720;
-  const HAUT_BATI = CIEL_H + TOIT_H;
-  SOL_Y = HAUT_BATI + NIVEAUX * H + RDC_H;
-  const SOL_H = 330;
+  /* La hauteur de ciel se cale sur la VUE, pas sur une constante :
+     le monde est plus large qu'avant, donc la fenetre de visee est
+     plus haute, et un ciel fixe laissait deja voir l'attique au tout
+     premier ecran. */
+  const vueH = Math.round(VW / (innerWidth / innerHeight));
+  CIEL_H = Math.round(vueH * 1.08);
+  Y0 = CIEL_H + TOIT_H;                    /* haut du dernier etage  */
+  SOL_Y = Y0 + NIVEAUX * H + RDC_H;
+  const SOL_H = 215;                       /* juste de quoi poser la rue */
   MONDE_H = SOL_Y + SOL_H;
 
   const svg = document.getElementById('toile');
   svg.textContent = '';
-  svg.setAttribute('viewBox', `0 0 ${VW} ${Math.round(VW / (innerWidth / innerHeight))}`);
+  svg.setAttribute('viewBox', `0 0 ${VW} ${vueH}`);
   svg.setAttribute('preserveAspectRatio', 'xMidYMid slice');
 
   const defs = el(svg, 'defs', {});
   const lg = el(defs, 'linearGradient', { id: 'ciel', x1: 0, y1: 0, x2: 0, y2: 1 });
   el(lg, 'stop', { offset: '0%', 'stop-color': C.cielHaut });
+  el(lg, 'stop', { offset: '62%', 'stop-color': C.brume });
   el(lg, 'stop', { offset: '100%', 'stop-color': C.cielBas });
   el(svg, 'rect', { x: -VW, y: -MONDE_H, width: VW * 3, height: MONDE_H * 3, fill: 'url(#ciel)' });
 
-  const planCiel = g(svg, { id: 'plan-ciel' });
+  const planCiel = g(svg, { id: 'plan-ciel' });   /* nuages, oiseaux : parallaxe */
+  const planLoin = g(svg, { id: 'plan-loin' });   /* la ville, calee sur le sol  */
   const planPres = g(svg, { id: 'plan-pres' });
 
-  /* --- nuages, cernes comme le reste du dessin --- */
-  for (const n of [{ x: VW * .24, y: 150, s: 1 }, { x: VW * .76, y: 330, s: .74 }, { x: VW * .46, y: 520, s: .54 }]) {
-    const nu = g(planCiel, { class: 'nuage' });
-    nu.style.animation = `derive ${rr(74, 112).toFixed(0)}s linear infinite`;
-    const lobes = [];
-    for (let i = 0; i < 6; i++) {
-      lobes.push({ cx: n.x + rr(-98, 98) * n.s, cy: n.y + rr(-12, 12) * n.s, r: rr(27, 50) * n.s });
+  /* --- nuages, sans contour comme tout le reste --- */
+  for (const n of [{ x: VW * .22, y: 140, s: 1 }, { x: VW * .78, y: 310, s: .72 },
+                   { x: VW * .48, y: 500, s: .5 }]) {
+    const nu = g(planCiel, { class: 'nuage', opacity: .9 });
+    nu.style.animation = `derive ${rr(80, 120).toFixed(0)}s linear infinite`;
+    for (let i = 0; i < 7; i++) {
+      el(nu, 'circle', { cx: n1(n.x + rr(-104, 104) * n.s), cy: n1(n.y + rr(-13, 13) * n.s),
+                         r: n1(rr(26, 52) * n.s), fill: C.nuage });
     }
-    for (const l of lobes) el(nu, 'circle', { cx: l.cx.toFixed(1), cy: l.cy.toFixed(1), r: (l.r + 3).toFixed(1), fill: C.trait, opacity: .22 });
-    for (const l of lobes) el(nu, 'circle', { cx: l.cx.toFixed(1), cy: l.cy.toFixed(1), r: l.r.toFixed(1), fill: C.nuage });
   }
 
-  /* --- les oiseaux, poses au milieu du ciel --- */
+  /* --- les oiseaux --- */
   const oiseau = g(planCiel, { class: 'oiseau' });
-  oiseau.style.animation = 'vole 30s linear infinite';
-  const trait = (x, y, e, op) => el(oiseau, 'path', {
+  oiseau.style.animation = 'vole 32s linear infinite';
+  const aile = (x, y, e, op) => el(oiseau, 'path', {
     d: `M${x} ${y} q ${7 * e} ${-6 * e} ${14 * e} 0 q ${7 * e} ${-6 * e} ${14 * e} 0`,
-    stroke: C.oiseau, 'stroke-width': (3 * e).toFixed(1), fill: 'none', 'stroke-linecap': 'round', opacity: op,
+    stroke: C.oiseau, 'stroke-width': n1(2.8 * e), fill: 'none', 'stroke-linecap': 'round', opacity: op,
   });
-  trait(VW * .20, 286, 1.2, 1); trait(VW * .20 + 58, 326, .8, .6); trait(VW * .20 - 40, 342, .64, .44);
+  aile(VW * .18, 268, 1.2, .9); aile(VW * .18 + 56, 308, .8, .58); aile(VW * .18 - 42, 326, .62, .4);
+
+  /* ------------------------------------------------------------------
+     LA VILLE DU FOND
+     Elle est calee sur le sol, pas sur le ciel : avec une parallaxe,
+     ses pieds quittaient le trottoir et la ville se mettait a flotter.
+     Seuls les nuages et les oiseaux, qui n'ont pas d'attache au sol,
+     peuvent se permettre de deriver.
+     ------------------------------------------------------------------ */
+  const tours = [];
+  let tx = -VW * .12;
+  while (tx < VW * 1.12) {
+    const w = rr(44, 112), h = rr(110, 330);
+    const loin = rnd();
+    tours.push({ x: tx, w, h, col: loin < .3 ? C.loin1 : loin < .62 ? C.loin2 : loin < .86 ? C.loin3 : C.loin4 });
+    tx += w + rr(-14, 40);
+  }
+  /* les plus pales d'abord : elles doivent rester derriere */
+  const rang = [C.loin1, C.loin2, C.loin3, C.loin4];
+  for (const col of rang) for (const t of tours) {
+    if (t.col !== col) continue;
+    rect(planLoin, t.x, SOL_Y - t.h, t.w, t.h, col);
+    if (t.w > 70 && rnd() < .5) rect(planLoin, t.x + t.w * .42, SOL_Y - t.h - rr(18, 44), 4, rr(18, 44), col);
+    /* quelques fenetres, a peine plus claires */
+    const nf = Math.floor(t.h / 46);
+    for (let f = 1; f < nf; f++) {
+      if (rnd() < .45) continue;
+      rect(planLoin, t.x + t.w * .18, SOL_Y - t.h + f * 46, t.w * .64, 7, C.cielBas, { op: .4 });
+    }
+  }
+  /* un voile de brume qui noie les pieds de la ville */
+  const vb = el(defs, 'linearGradient', { id: 'brume', x1: 0, y1: 0, x2: 0, y2: 1 });
+  el(vb, 'stop', { offset: '0%', 'stop-color': C.cielBas, 'stop-opacity': 0 });
+  el(vb, 'stop', { offset: '100%', 'stop-color': C.cielBas, 'stop-opacity': .9 });
+  el(planLoin, 'rect', { x: -VW, y: n1(SOL_Y - 250), width: VW * 3, height: 250, fill: 'url(#brume)' });
 
   /* --- le sol --- */
-  /* Le sol est un PLAN qui fuit vers le fond, pas une bande plate :
-     une bande horizontale se lisait comme un mur et le batiment
-     semblait pose sur rien. */
-  face(planPres, [[-VW, SOL_Y, -420], [VW * 2, SOL_Y, -420], [VW * 2, SOL_Y, 520], [-VW, SOL_Y, 520]],
-       C.sol, { trait: null });
-  const bordY = py(SOL_Y, -420);
-  el(planPres, 'rect', { x: -VW, y: bordY, width: VW * 3, height: 42, fill: C.trottoir });
-  el(planPres, 'rect', { x: -VW, y: bordY + 42, width: VW * 3, height: MONDE_H, fill: C.rue });
-  el(planPres, 'line', { x1: -VW, y1: bordY, x2: VW * 2, y2: bordY, stroke: C.trait, 'stroke-width': 3 });
-  el(planPres, 'line', { x1: -VW, y1: bordY + 42, x2: VW * 2, y2: bordY + 42, stroke: C.trait, 'stroke-width': 3 });
-  for (let i = -2; i < 12; i++) {
-    el(planPres, 'rect', { x: (i * (VW / 6) + 26).toFixed(1), y: bordY + 112,
-                           width: (VW / 14).toFixed(1), height: 9, rx: 4, fill: C.sol, opacity: .85 });
-  }
+  rect(planPres, -VW, SOL_Y, VW * 3, MONDE_H, C.sol);
+  rect(planPres, -VW, SOL_Y, VW * 3, 7, C.bordure);
+  rect(planPres, -VW, SOL_Y + 96, VW * 3, 4, C.solOmbre, { op: .7 });
 
   const bati = g(planPres, { id: 'bati' });
 
   /* ------------------------------------------------------------------
-     ORDRE DE TRACE : du bas vers le haut.
-     En axonometrie, un volume pose sur un autre doit etre peint APRES
-     lui, sinon le dessus du volume inferieur recouvre le niveau qui
-     s'appuie dessus — et avec lui son garde-corps. C'est l'algorithme
-     du peintre : le plus proche en dernier.
+     ORDRE DE TRACE : du HAUT vers le BAS.
+     Les plantations d'un niveau poussent vers le haut, devant le
+     vitrage du niveau precedent — il faut donc que celui-ci soit deja
+     pose. L'attique vient en premier pour la meme raison : la verdure
+     du dernier etage doit passer devant lui.
      ------------------------------------------------------------------ */
-  const yR = HAUT_BATI + NIVEAUX * H;
 
-  /* --- le rez-de-chaussee : vitrine, porte vitree, auvent --- */
-  const placeR = g(bati, { transform: `translate(0, ${yR})` });
-  const rez = g(placeR, { class: 'niveau', 'data-y': yR, 'data-etage': NIVEAUX });
-  const rx = x0 + RDC.x;
-  boite(rez, rx, 0, 0, RDC.w, RDC_H, PROF, RDC.t);
-  const ex = rx + RDC.w * .42;
-  el(rez, 'rect', { x: (px(ex, 0) - 2).toFixed(1), y: (py(46, 0)).toFixed(1), width: 94, height: RDC_H - 46,
-                    fill: C.chaud, stroke: C.trait, 'stroke-width': 3 });
-  el(rez, 'line', { x1: (px(ex, 0) + 46).toFixed(1), y1: py(46, 0).toFixed(1),
-                    x2: (px(ex, 0) + 46).toFixed(1), y2: py(RDC_H, 0).toFixed(1),
-                    stroke: C.trait, 'stroke-width': 2.6 });
-  el(rez, 'rect', { x: (px(ex, 0) - 16).toFixed(1), y: (py(46, 0) - 15).toFixed(1), width: 124, height: 15,
-                    rx: 3, fill: VOL.dalle.face, stroke: C.trait, 'stroke-width': 3 });
-  el(rez, 'rect', { x: (px(rx + 28, 0)).toFixed(1), y: (py(64, 0)).toFixed(1), width: 86, height: RDC_H - 108,
-                    fill: C.vitre, stroke: C.trait, 'stroke-width': 3 });
+  /* --- l'attique, pose sur la dalle du dernier etage --- */
+  const placeT = g(bati, { transform: `translate(0, ${Y0})` });
+  /* L'attique se devoile avec la dalle qui le porte. Avance de tout le
+     ciel, il apparaissait seul au milieu du bleu, pose sur rien. */
+  const att = g(placeT, { class: 'niveau', 'data-y': Y0 - 40, 'data-etage': -1 });
+  const ax = x0 + LARG * .13, aw = LARG * .52;
+  rect(att, ax, -TOIT_H + 22, aw, TOIT_H - 22, C.toitVol);
+  rect(att, ax, -TOIT_H + 22, aw, 10, C.toitVolHaut);
+  rect(att, ax + aw - 22, -TOIT_H + 22, 22, TOIT_H - 22, C.toitVolOmb, { op: .6 });
+  /* la casquette qui coiffe le volume */
+  rect(att, ax - 16, -TOIT_H, aw + 32, 22, C.toitVolHaut);
+  rect(att, ax - 16, -TOIT_H + 16, aw + 32, 6, C.toitVolOmb, { op: .5 });
+  /* une baie vitree sur sa face */
+  rect(att, ax + 24, -TOIT_H + 50, aw - 48, TOIT_H - 92, C.vitre);
+  poly(att, [[ax + 24, -TOIT_H + 50], [ax + aw - 24, -TOIT_H + 50],
+             [ax + aw - 24, -TOIT_H + 76], [ax + 24, -TOIT_H + 92]], C.reflet, { op: .22 });
+  /* Pas de garde-corps : le peigne de balustres ne ressortait qu'en
+     fines rayures au-dessus de la verdure, et reduit a une lisse il
+     flottait comme un cadre vide a cote du volume. La plantation de la
+     terrasse ferme le bord a elle seule. */
 
-  /* l'escalier exterieur, sur la droite */
-  /* Un perron devant la porte plutot qu'une volee laterale : vue de
-     face, l'escalier sur le flanc se lisait comme une pile de cubes
-     blancs suspendus. Trois marches qui avancent vers le spectateur se
-     comprennent d'un coup d'oeil. */
-  const perron = g(rez, { class: 'verdure' });
-  for (let m = 0; m < 3; m++) {
-    const lg = 122 + m * 22;
-    boite(perron, ex - 14 - m * 11, RDC_H - 22 + m * 11, -16 - m * 22, lg, 22, 22,
-          { face: VOL.dalle.face, cote: VOL.dalle.cote, dessus: VOL.dalle.dessus }, { ep: 2.6 });
+  /* --- les etages, du haut vers le bas --- */
+  for (let i = 0; i < NIVEAUX; i++) {
+    etage(bati, i, G, Y0 + i * H, { dense: i === 0 });
   }
-  /* deux bacs encadrent l'entree */
-  bac(perron, ex - 92, RDC_H, -40, 54);
-  bac(perron, ex + 108, RDC_H, -40, 54);
 
-  /* --- les trois niveaux, du plus bas au plus haut --- */
-  for (let i = NIVEAUX - 1; i >= 0; i--) niveau(bati, i, G, HAUT_BATI + i * H);
-
-  /* --- la toiture, posee en dernier : deux pans et une souche --- */
-  const placeToit = g(bati, { transform: `translate(0, ${CIEL_H})` });
-  const toit = g(placeToit, { class: 'niveau', 'data-y': CIEL_H, 'data-etage': -1 });
-  const tx = x0 + PLAN[0].x - 16, tw = PLAN[0].w + 32, td = PROF + 28;
-  /* La pente doit depasser largement la montee due a la profondeur :
-     en projection, avancer de zf vers le fond remonte deja de
-     zf * DY a l'ecran. Avec une pente de 32 pour une demi-profondeur
-     de 102 (soit 27,5 de montee), faitage et egout arriere tombaient a
-     la meme hauteur et le toit paraissait plat. */
-  const faite = 46, zf = td / 2;
-  face(toit, [[tx, faite, zf], [tx + tw, faite, zf], [tx + tw, TOIT_H, td], [tx, TOIT_H, td]], VOL.toiture.cote);
-  face(toit, [[tx + tw, TOIT_H, 0], [tx + tw, faite, zf], [tx + tw, TOIT_H, td]], VOL.toiture.dessus);
-  face(toit, [[tx, faite, zf], [tx + tw, faite, zf], [tx + tw, TOIT_H, 0], [tx, TOIT_H, 0]], VOL.toiture.face);
-  /* la souche, enfoncee sous le faitage pour qu'elle ne flotte pas */
-  boite(toit, tx + tw * .58, faite - 54, zf - 16, 42, 78, 34,
-        { face: C.souche, cote: '#9b6a4c', dessus: '#d6a183' });
-  boite(toit, tx + tw * .56, faite - 68, zf - 20, 50, 14, 42,
-        { face: '#56655f', cote: '#3f4b47', dessus: '#6d7d76' });
-
-  /* --- buissons et arbustes au pied --- */
-  const pied = g(planPres, { class: 'niveau', 'data-y': SOL_Y - 60, 'data-etage': NIVEAUX + 1 });
-  const vPied = g(pied, { class: 'verdure' });
-  /* Le pied du tronc est pose sur le PLAN du sol, a une profondeur
-     tiree au sort, et le feuillage retombe exactement sur son sommet :
-     avant, les deux etaient calcules separement et le tronc flottait a
-     cote de la masse. */
-  for (let i = 0; i < 8; i++) {
-    const ax = rr(-VW * .06, VW * 1.06);
-    if (ax > x0 - 50 && ax < x0 + EMPRISE + PROF * DX + 50) continue;
-    const z = rr(-360, 300);
-    const base = py(SOL_Y, z), cx = px(ax, z);
-    const ah = rr(68, 118), tronc = ah * .46;
-    el(vPied, 'rect', { x: (cx - 7).toFixed(1), y: (base - tronc).toFixed(1),
-                        width: 14, height: tronc.toFixed(1), rx: 2, fill: C.brun,
-                        stroke: C.trait, 'stroke-width': 2.4 });
-    feuillage(vPied, cx, base - ah * .74, ah * 1.3, ah * .72, 1.1);
+  /* --- le rez-de-chaussee --- */
+  const yR = Y0 + NIVEAUX * H;
+  const rez = etage(bati, NIVEAUX, G, yR, { haut: RDC_H });
+  /* l'entree : un hall vitre, chaud, et son auvent */
+  const ex = x0 + LARG * .38, ew = LARG * .24, eh = 156;
+  rect(rez, ex - 10, RDC_H - eh - 10, ew + 20, eh + 10, C.facadeOmbre);
+  /* deux vantaux vitres, la lumiere du hall derriere */
+  for (let v2 = 0; v2 < 2; v2++) {
+    const vx = ex + v2 * (ew / 2 + 3);
+    rect(rez, vx, RDC_H - eh, ew / 2 - 3, eh, C.chaud, { op: .8 });
+    rect(rez, vx + 4, RDC_H - eh + 5, ew / 2 - 11, eh - 10, '#eddcbc', { op: .45 });
+    /* la traverse du vantail */
+    rect(rez, vx, RDC_H - eh * .34, ew / 2 - 3, 3, C.facadeOmbre, { op: .55 });
+    /* la poignee */
+    rect(rez, vx + (v2 ? 8 : ew / 2 - 15), RDC_H - eh * .52, 4, 30, C.facadeOmbre, { op: .8 });
   }
-  /* des buissons bas, serres contre le socle */
-  for (let i = 0; i < 6; i++) {
-    const z = rr(-300, -60);
-    const ax = x0 + rr(-90, EMPRISE + 110);
-    feuillage(vPied, px(ax, z), py(SOL_Y - 14, z), rr(76, 128), rr(32, 48), .95);
+  /* l'auvent et son ombre portee */
+  rect(rez, ex - 34, RDC_H - eh - 26, ew + 68, 16, C.dalle);
+  rect(rez, ex - 34, RDC_H - eh - 26, ew + 68, 4, C.dalleHaut);
+  rect(rez, ex - 34, RDC_H - eh - 10, ew + 68, 7, C.facadeOmbre, { op: .5 });
+  /* deux bacs encadrent la porte */
+  const vr = g(rez, { class: 'verdure' });
+  bac(vr, ex - 92, RDC_H, 58, 108, { dens: 1.15, clair: true });
+  bac(vr, ex + ew + 34, RDC_H, 58, 108, { dens: 1.15, clair: true });
+
+  /* ------------------------------------------------------------------
+     LE PIED : haies et arbres, poses en dernier pour passer DEVANT le
+     rez-de-chaussee, comme sur la reference.
+     ------------------------------------------------------------------ */
+  const pied = g(planPres, { class: 'niveau', 'data-y': SOL_Y - 150, 'data-etage': NIVEAUX + 1 });
+  const vp = g(pied, { class: 'verdure' });
+  /* la haie basse, continue, qui ferme le bas de la facade */
+  for (let hx = x0 - OVER - 70; hx < x0 + LARG + OVER + 70; hx += rr(38, 58)) {
+    massif(vp, hx, SOL_Y - rr(28, 44), rr(96, 144), rr(56, 84), { dens: .9, clair: rnd() < .35 });
+  }
+  /* les arbres : deux groupes serres, un de chaque cote */
+  const arbres = [];
+  for (let i = 0; i < 5; i++) arbres.push({ x: x0 - OVER - rr(10, VW * .26), h: rr(205, 320) });
+  for (let i = 0; i < 5; i++) arbres.push({ x: x0 + LARG + OVER + rr(10, VW * .26), h: rr(205, 320) });
+  /* les plus petits d'abord : les grands passent devant */
+  arbres.sort((a, b) => a.h - b.h);
+  for (const a of arbres) arbre(vp, a.x, SOL_Y + rr(10, 50), a.h);
+  /* Un rideau de buissons tout devant, pose sur une MEME assise : tires
+     a des hauteurs libres, ils donnaient l'impression de flotter chacun
+     a son etage au-dessus du trottoir. */
+  /* le pas suit la largeur de la vue : fixe, il ne laissait qu'une ou
+     deux grappes sur un cadrage etroit */
+  for (let bx = -VW * .08; bx < VW * 1.08; bx += rr(VW * .21, VW * .36)) {
+    const n = ri(2, 3);
+    for (let j = 0; j < n; j++) {
+      massif(vp, bx + j * rr(46, 72), SOL_Y + rr(72, 90), rr(104, 168), rr(56, 98),
+             { dens: 1, clair: rnd() < .4 });
+    }
   }
 
   const vue = () => +svg.viewBox.baseVal.height;
   document.getElementById('defilement').style.height =
     Math.max(300, Math.min(900, (MONDE_H / vue()) * 100)) + 'vh';
 
-  return { svg, planCiel, planPres, viteCiel: .34 };
+  return { svg, planCiel, planLoin, planPres, viteCiel: .32 };
 }
 
 /* ==================================================================
@@ -592,12 +729,16 @@ function lireDefilement() {
   cible = t * Math.max(0, MONDE_H - +vue.svg.viewBox.baseVal.height);
 }
 
+/* On nomme ce que l'oeil regarde, pas le centre geometrique de la vue :
+   un niveau se devoile quand il entre par le BAS de l'ecran, et une
+   etiquette calee sur le centre annoncait encore « Ciel » alors que la
+   toiture etait deja la. La mire suit donc le meme point qu'eux. */
 function nomme(y, hVue) {
-  const centre = y + hVue / 2;
-  if (centre < CIEL_H - 40) return 'Ciel';
-  if (y + hVue * .80 > SOL_Y) return 'Rue';
-  const i = Math.floor((centre - CIEL_H - TOIT_H) / H);
-  if (i < 0) return 'Toiture';
+  const mire = y + hVue * .62;
+  if (mire < CIEL_H + 24) return 'Ciel';
+  if (mire > SOL_Y - 30) return 'Rue';
+  if (mire < Y0 + 24) return 'Terrasse';
+  const i = Math.floor((mire - Y0) / H);
   if (i >= NIVEAUX) return 'Rez-de-chaussée';
   return `Étage <b>${NIVEAUX - i}</b>`;
 }
@@ -606,11 +747,17 @@ function image() {
   if (camY === null) camY = cible;
   else camY += (cible - camY) * (reduit ? 1 : .12);
 
-  vue.planPres.setAttribute('transform', `translate(0, ${(-camY).toFixed(2)})`);
+  const d = `translate(0, ${(-camY).toFixed(2)})`;
+  vue.planPres.setAttribute('transform', d);
+  vue.planLoin.setAttribute('transform', d);
   vue.planCiel.setAttribute('transform', `translate(0, ${(-camY * vue.viteCiel).toFixed(2)})`);
 
   const hVue = +vue.svg.viewBox.baseVal.height;
-  for (const n of niveauxDom) n.classList.toggle('vu', +n.dataset.y < camY + hVue * .94);
+  /* Un niveau se devoile quand il entre par le bas de la vue. C'est le
+     gabarit qui garantit qu'il en reste toujours a decouvrir : plafonner
+     ce seuil rendait au contraire le bas du monde inatteignable, et le
+     rez-de-chaussee ne s'allumait jamais sur telephone. */
+  for (const n of niveauxDom) n.classList.toggle('vu', +n.dataset.y < camY + hVue * .92);
 
   barre.style.transform = `scaleX(${(camY / Math.max(1, MONDE_H - hVue)).toFixed(4)})`;
   compteur.innerHTML = nomme(camY, hVue);
@@ -635,23 +782,24 @@ addEventListener('scroll', lireDefilement, { passive: true });
 
 /* ==================================================================
  * 9. LES BOUTONS A VENIR
- *    Chaque baie de la face avant est un <g> nomme, avec son etage et
- *    son rang. Tant qu'aucun texte n'est rattache, .cliquable est pose
- *    sur toutes pour qu'on voie les zones ; le jour ou les contenus
- *    arrivent, il suffira de ne le poser que sur celles qui en ont un.
+ *    Chaque baie est un <g> nomme, avec son etage et son rang. Tant
+ *    qu'aucun texte n'est rattache, .cliquable est pose sur toutes
+ *    pour qu'on voie les zones ; le jour ou les contenus arrivent, il
+ *    suffira de ne le poser que sur celles qui en ont un, et d'ajouter
+ *    role/tabindex a ce moment-la.
  *
- *      immeuble.fenetres.forEach(f => f.addEventListener('click', () => {
- *        ouvrir(f.dataset.etage, f.dataset.travee);
+ *      immeuble.baies.forEach(b => b.addEventListener('click', () => {
+ *        ouvrir(b.dataset.etage, b.dataset.travee);
  *      }));
  * ================================================================== */
 function marquerCliquables() {
-  for (const f of document.querySelectorAll('.fenetre')) f.classList.add('cliquable');
+  for (const b of document.querySelectorAll('.baie')) b.classList.add('cliquable');
 }
 marquerCliquables();
 
 window.immeuble = {
   marquerCliquables,
-  get fenetres() { return [...document.querySelectorAll('.fenetre')]; },
+  get baies() { return [...document.querySelectorAll('.baie')]; },
   get camY() { return camY; },
   MONDE_H, NIVEAUX, H,
 };
@@ -659,13 +807,13 @@ window.immeuble = {
 const style = document.createElement('style');
 style.textContent = `
   @keyframes vole {
-    0%   { transform: translate(${(-G.VW * .42).toFixed(0)}px, 44px); }
-    50%  { transform: translate(${(G.VW * .22).toFixed(0)}px, -26px); }
-    100% { transform: translate(${(G.VW * .9).toFixed(0)}px, 32px); }
+    0%   { transform: translate(${(-G.VW * .4).toFixed(0)}px, 42px); }
+    50%  { transform: translate(${(G.VW * .22).toFixed(0)}px, -24px); }
+    100% { transform: translate(${(G.VW * .9).toFixed(0)}px, 30px); }
   }
   @keyframes derive {
-    0%   { transform: translate(-38px, 0); }
-    100% { transform: translate(38px, 0); }
+    0%   { transform: translate(-36px, 0); }
+    100% { transform: translate(36px, 0); }
   }`;
 document.head.appendChild(style);
 
