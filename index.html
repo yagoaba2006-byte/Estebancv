@@ -232,6 +232,50 @@
   #int-corps strong{color:#2b2a26;font-weight:600}
   #int-corps em{font-style:italic}
 
+  /* ---- un tableau de chiffres dans une carte ---- */
+  .chiffres{margin:1.5rem 0 0;overflow-x:auto}
+  .chiffres table{border-collapse:collapse;width:100%;font-size:.86rem}
+  .chiffres th,.chiffres td{
+    text-align:left;padding:.56rem .7rem .56rem 0;
+    border-bottom:1px solid rgba(43,42,38,.12);vertical-align:top;
+  }
+  .chiffres thead th{
+    font-size:.6rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+    color:#7a7466;border-bottom-color:rgba(43,42,38,.24);padding-bottom:.45rem;
+  }
+  .chiffres tbody th{font-weight:600;color:#2b2a26;padding-right:1.2rem}
+  .chiffres tbody td{color:#55514a;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .chiffres tbody tr:last-child th,.chiffres tbody tr:last-child td{border-bottom:0}
+
+  /* ---- la mention : elle doit se distinguer du recit ---- */
+  #int-corps p.mention{
+    margin-top:1.1rem;padding:.85rem 1rem;border-radius:9px;
+    border-left:4px solid #d08a68;background:rgba(233,187,169,.22);
+    font-size:.88rem;line-height:1.58;color:#5a5047;
+  }
+  #int-corps p.mention strong{color:#8c4a28}
+
+  @media (max-width:620px){
+    /* quatre colonnes ne tiennent pas sur un telephone : chaque ligne
+       devient un bloc, et chaque valeur porte le nom de sa colonne */
+    .chiffres thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+    .chiffres table,.chiffres tbody,.chiffres tr,.chiffres th,.chiffres td{display:block;width:100%}
+    .chiffres tbody tr{
+      padding:.7rem 0;border-bottom:1px solid rgba(43,42,38,.12);
+    }
+    .chiffres tbody tr:last-child{border-bottom:0}
+    .chiffres tbody th{padding:0 0 .35rem;border:0;font-size:.95rem}
+    .chiffres tbody td{
+      padding:.12rem 0;border:0;white-space:normal;
+      display:flex;justify-content:space-between;gap:1rem;
+    }
+    .chiffres tbody td::before{
+      content:attr(data-libelle);
+      font-size:.6rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+      color:#8d8678;flex:none;padding-top:.18rem;
+    }
+  }
+
   .int-nav{
     width:100%;max-width:44rem;margin:2.6rem auto 0;
     display:flex;gap:.8rem;justify-content:space-between;
@@ -249,12 +293,18 @@
   .int-nav button:focus-visible,#int-sortir:focus-visible{
     outline:3px solid #2b2a26;outline-offset:3px;
   }
-  #int-sortir{
-    position:absolute;top:clamp(1rem,2.4vh,1.7rem);right:var(--gouttiere);z-index:1;
-    /* opaque : il surplombe un texte qui defile dessous */
-    background:#f3ebdd;box-shadow:0 2px 10px -4px rgba(43,42,38,.3);
+  /* Un BANDEAU degrade, pas un bouton flottant seul : pose nu au-dessus
+     d'un texte qui defile, il en masquait une ligne par le milieu. Le
+     texte passe maintenant sous un fondu, ce qui se lit comme voulu. */
+  .piece-barre{
+    position:absolute;top:0;left:0;right:0;z-index:1;pointer-events:none;
+    height:clamp(3.6rem,8vh,5rem);
+    display:flex;align-items:center;justify-content:flex-end;
+    padding:0 var(--gouttiere);
+    background:linear-gradient(180deg,#fdfbf6 46%,rgba(253,251,246,0) 100%);
   }
-  #int-sortir:hover{background:#eadfcc}
+  #int-sortir{pointer-events:auto;background:rgba(43,42,38,.07)}
+  #int-sortir:hover{background:rgba(43,42,38,.14)}
 
   @media (max-width:700px){
     /* de quoi passer sous le bouton « Ressortir », qui est fixe */
@@ -371,7 +421,9 @@
       <button id="int-suiv" type="button">Fenêtre suivante <span aria-hidden="true">→</span></button>
     </nav>
   </div>
-  <button id="int-sortir" type="button">Ressortir <span aria-hidden="true">✕</span></button>
+  <div class="piece-barre">
+    <button id="int-sortir" type="button">Ressortir <span aria-hidden="true">✕</span></button>
+  </div>
 </section>
 
 <script type="module">
@@ -418,7 +470,17 @@ const CARTES = {
     "<strong>Les presses.</strong> C’est la piste dont je suis le plus fier. Les presses chauffantes tournent en continu, y compris ouvertes et vides. J’ai proposé un pilotage thermodynamique assisté par IA qui adapte les temps de cycle : quand la presse est ouverte, on cesse de chauffer dans le vide et on la laisse redescendre naturellement, puis on commande les skids électriques pour qu’elle soit remontée en température à l’instant précis où le composite suivant entre. De l’électricité économisée, des pertes thermiques en moins dans l’atelier, et un process de fabrication inchangé.",
   ]},
   '1-2': { titre: 'L’arbitrage, puis le COMEX', date: '2024', p: [
-    "Une idée ne vaut rien tant qu’elle n’est pas comparable aux autres. J’ai donc construit un grand tableau Excel croisant coût d’investissement, gain énergétique et retour sur investissement, avec deux colonnes auxquelles j’ai donné un poids important : le gain financier et le gain CO₂. Les valeurs sont des ordres de grandeur, et je les ai présentées comme tels.",
+    "Une idée ne vaut rien tant qu’elle n’est pas comparable aux autres. J’ai donc construit un grand tableau Excel croisant coût d’investissement, gain énergétique et retour sur investissement, avec deux colonnes auxquelles j’ai donné un poids important : le gain financier et le gain CO₂. Les valeurs étaient des ordres de grandeur, et je les ai présentées comme tels devant la direction.",
+    { t: 'tableau',
+      entetes: ['Mesure', 'Investissement', 'Gain annuel', 'ROI'],
+      lignes: [
+        ['Détection de présence et gradation', '~ 5 k€', '~ 7 MWh · ~ 0,5 t CO₂', '< 2 ans'],
+        ['Pilotage thermodynamique des presses', '~ 25 k€', '~ 45 MWh · ~ 3 t CO₂', '~ 3 ans'],
+        ['Isolation de toiture et cool roofing', '~ 60 k€', '~ 35 MWh · ~ 7 t CO₂', '~ 8 ans'],
+        ['Dry coolers en zones hautes', '~ 45 k€', 'confort avant tout', '> 10 ans'],
+      ]},
+    { t: 'mention',
+      texte: "<strong>Ces chiffres sont fictifs.</strong> Les données réelles de Röchling Industrial sont couvertes par la confidentialité de l’entreprise et je ne peux pas les publier. Ce tableau n’est là que pour montrer la <em>forme</em> de l’arbitrage que j’ai mené : les postes comparés, les grandeurs croisées et la façon de les classer. Les ordres de grandeur sont reconstitués pour l’exemple." },
     "Ce tableau servait à <strong>classer</strong> : par coût, par ROI — les <em>quick wins</em> d’un côté — et par apport réel à la condition des ouvriers. Il servait aussi à écarter ce qui n’était pas tenable sur un site en production.",
     "De ma propre initiative, après lecture des chartes internes, j’y ai ajouté des mesures simples de sécurité et d’environnement adossées à l’<strong>ISO 14001</strong> et à l’<strong>ISO 45001</strong>. J’ai ensuite présenté l’ensemble en dix minutes devant le directeur et plusieurs membres du COMEX. Ils ont été satisfaits du travail, et nous avons repris ensemble les points qui les intriguaient. J’arrivais au début de leur projet : ce que j’ai laissé est un socle d’idées à développer.",
   ]},
@@ -1243,11 +1305,7 @@ function entrer(b) {
 
   intLieu.textContent = c.date ? `${LIEUX[b.dataset.etage]} · ${c.date}` : LIEUX[b.dataset.etage];
   intTitre.textContent = c.titre;
-  intCorps.replaceChildren(...c.p.map(t => {
-    const el = document.createElement('p');
-    el.innerHTML = t;
-    return el;
-  }));
+  intCorps.replaceChildren(...c.p.map(bloc));
   const i = CLES.indexOf(b.dataset.cle);
   btnPrec.disabled = i <= 0;
   btnSuiv.disabled = i >= CLES.length - 1;
@@ -1257,6 +1315,52 @@ function entrer(b) {
   interieur.classList.add('dedans');
   document.querySelector('.piece').scrollTop = 0;
   intTitre.focus({ preventScroll: true });
+}
+
+/* Un bloc de carte est soit un paragraphe (une simple chaine), soit un
+   objet type : un tableau de chiffres, ou une mention a part. */
+function bloc(b) {
+  if (typeof b === 'string') {
+    const el = document.createElement('p');
+    el.innerHTML = b;
+    return el;
+  }
+  if (b.t === 'mention') {
+    const el = document.createElement('p');
+    el.className = 'mention';
+    el.innerHTML = b.texte;
+    return el;
+  }
+  if (b.t === 'tableau') {
+    const env = document.createElement('div');
+    env.className = 'chiffres';
+    const tb = document.createElement('table');
+    const th = document.createElement('thead');
+    const lt = document.createElement('tr');
+    for (const e of b.entetes) {
+      const c = document.createElement('th');
+      c.scope = 'col'; c.textContent = e;
+      lt.appendChild(c);
+    }
+    th.appendChild(lt); tb.appendChild(th);
+    const co = document.createElement('tbody');
+    for (const l of b.lignes) {
+      const tr = document.createElement('tr');
+      l.forEach((v, i) => {
+        /* en-tete de ligne pour la premiere cellule : en pile sur
+           telephone, c'est elle qui nomme l'enregistrement */
+        const c = document.createElement(i ? 'td' : 'th');
+        if (!i) c.scope = 'row';
+        c.textContent = v;
+        c.dataset.libelle = b.entetes[i];
+        tr.appendChild(c);
+      });
+      co.appendChild(tr);
+    }
+    tb.appendChild(co); env.appendChild(tb);
+    return env;
+  }
+  return document.createTextNode('');
 }
 
 function sortir(rendreLeFocus = true) {
