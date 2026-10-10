@@ -101,12 +101,19 @@
      survol et le clic a sa place, et une moitie de chaque baie devient
      inerte. C'est du decor, ca ne doit rien intercepter. */
   .verdure{pointer-events:none}
-  .baie .cadre{stroke:rgba(214,234,240,.26);transition:stroke .2s ease,stroke-width .2s ease}
+  /* Au repos, c'est l'ALLEGE — le bandeau clair sous chaque portion de
+     vitrage — qui dit ou l'on pourra cliquer. Un cadre complet visible
+     en permanence decoupait le mur-rideau continu de la reference en
+     trois fenetres isolees. */
+  .baie .allege{transition:opacity .2s ease,fill .2s ease}
+  .baie .cadre{stroke:transparent;transition:stroke .2s ease,stroke-width .2s ease}
   .baie .halo{opacity:0;transition:opacity .2s ease}
   .baie .vitrage{transition:opacity .2s ease}
   .baie.cliquable{cursor:pointer}
+  .baie.cliquable:hover .allege,
+  .baie.cliquable:focus-visible .allege{opacity:1;fill:#f4e2c6}
   .baie.cliquable:hover .cadre,
-  .baie.cliquable:focus-visible .cadre{stroke:#f4e2c6;stroke-width:3.4}
+  .baie.cliquable:focus-visible .cadre{stroke:#f4e2c6;stroke-width:3}
   .baie.cliquable:hover .halo,
   .baie.cliquable:focus-visible .halo{opacity:1}
   .baie.cliquable:hover .vitrage,
@@ -252,6 +259,15 @@ const ell = (p, cx, cy, rx, ry, fill, o = {}) => el(p, 'ellipse', {
 function massif(parent, cx, cy, larg, haut, opt = {}) {
   const m = g(parent, {});
   const dens = opt.dens ?? 1;
+  /* Bornes horizontales : un massif pose sur une dalle ne doit pas
+     deborder au-dela d'elle. Sans elles, les lobes partaient jusqu'a
+     une demi-largeur de chaque cote et de la verdure se retrouvait
+     suspendue dans le ciel, a cote du batiment. */
+  const bx = opt.xmin !== undefined
+    ? (lx, r) => (opt.xmin + r > opt.xmax - r
+        ? (opt.xmin + opt.xmax) / 2
+        : Math.min(Math.max(lx, opt.xmin + r), opt.xmax - r))
+    : lx => lx;
   const couches = [
     { col: C.v1, n: 7, dx:  .10, dy:  .26, r: [.15, .26] },
     { col: C.v2, n: 8, dx:  .16, dy:  .08, r: [.14, .24] },
@@ -265,7 +281,7 @@ function massif(parent, cx, cy, larg, haut, opt = {}) {
     for (let i = 0; i < n; i++) {
       const r = haut * rr(c.r[0], c.r[1]);
       ell(m,
-        cx + (c.dx + rr(-.34, .34)) * larg * .5,
+        bx(cx + (c.dx + rr(-.34, .34)) * larg * .5, r),
         cy + (c.dy + rr(-.16, .16)) * haut * .5,
         r, r * rr(.80, 1.0), c.col);
     }
@@ -323,8 +339,10 @@ function bac(parent, x, y, larg, haut, opt = {}) {
   rect(b, x, y - hb, larg, 4, C.bacHaut);
   rect(b, x, y - 5, larg, 5, C.bacOmbre);
   const cx = x + larg / 2;
-  massif(b, cx, y - hb - haut * .40, larg * rr(1.2, 1.6), haut, opt);
-  if (rnd() < .5) touffe(b, cx + rr(-larg * .3, larg * .3), y - hb - haut * .45, haut * rr(.5, .8));
+  /* le bas du feuillage descend jusqu'a la caisse : un massif centre
+     plus haut laissait un vide sombre entre la plante et son bac */
+  massif(b, cx, y - hb + 6 - haut * .47, larg * rr(1.2, 1.6), haut, opt);
+  if (rnd() < .5) touffe(b, cx + rr(-larg * .3, larg * .3), y - hb, haut * rr(.5, .8));
   return b;
 }
 
@@ -340,29 +358,31 @@ function bandePlantee(parent, x, larg, y, opt = {}) {
   /* Deux a quatre GROUPES par dalle, separes par des pleins de
      vitrage. Une bande continue d'un bout a l'autre etouffait la
      facade : on ne voyait plus l'immeuble, seulement une haie. */
-  const nG = dense ? 4 : ri(3, 4);
+  const nG = dense ? 4 : 3;
   const pas = larg / nG;
   for (let i = 0; i < nG; i++) {
-    const gw = pas * rr(.40, .62);
+    const gw = pas * rr(.52, .78);
     const gx = x + i * pas + rr(0, pas - gw);
     /* chaque groupe a sa propre stature : c'est ce qui donne le profil
        irregulier de la reference, pas le hasard massif par massif */
-    const hG = rr(dense ? 88 : 64, dense ? 132 : 112);
+    const hG = rr(dense ? 86 : 62, dense ? 134 : 110);
 
-    /* 1. le bac, pose en premier et RENTRE sous la verdure : a largeur
-          egale, il depassait de part et d'autre et la dalle se lisait
-          comme une poutre de terre cuite. */
-    rect(b, gx + 7, y - 22, gw - 14, 22, C.bac);
-    rect(b, gx + 7, y - 22, gw - 14, 4, C.bacHaut);
-    rect(b, gx + 7, y - 5, gw - 14, 5, C.bacOmbre);
+    /* 1. le bac, aussi large que le groupe : rentre sous la verdure, il
+          laissait voir la facade sombre de part et d'autre et la masse
+          paraissait suspendue a cote de sa jardiniere. */
+    rect(b, gx, y - 22, gw, 22, C.bac);
+    rect(b, gx, y - 22, gw, 4, C.bacHaut);
+    rect(b, gx, y - 5, gw, 5, C.bacOmbre);
 
-    /* 2. les masses, a un pas plus court que leur largeur, et plus
-          larges que le bac pour le couvrir */
-    for (let mx = gx - 2; mx < gx + gw + 2; mx += 40 * rr(.8, 1.2)) {
-      const h = hG * rr(.74, 1.2);
-      massif(b, mx, y - 14 - h * .42, h * rr(1.4, 1.85), h,
-             { dens: dense ? 1.2 : 1.05, clair: rnd() < .55 });
-      if (rnd() < .26) touffe(b, mx + rr(-18, 18), y - 20, hG * rr(.4, .66));
+    /* 2. les masses. Leur BAS descend jusqu'a la dalle (y + 4) : posees
+          plus haut, un vide sombre separait le feuillage du bandeau et
+          toute la plantation semblait decalee du batiment. Elles sont
+          bornees par la dalle, jamais au-dela. */
+    for (let mx = gx - 4; mx < gx + gw + 4; mx += 38 * rr(.8, 1.2)) {
+      const h = hG * rr(.76, 1.2);
+      massif(b, mx, y + 4 - h * .47, h * rr(1.35, 1.75), h,
+             { dens: dense ? 1.2 : 1.05, clair: rnd() < .55, xmin: x, xmax: x + larg });
+      if (rnd() < .26) touffe(b, mx + rr(-16, 16), y - 18, hG * rr(.4, .66));
     }
 
     /* 3. ce qui passe par-dessus le bord, sous ce groupe seulement.
@@ -401,6 +421,7 @@ const NIVEAUX = 4;       /* quatre etages, plus le rez         */
 const RDC_H = 238;
 const TOIT_H = 162;      /* le volume en attique, sur le toit  */
 const BAIES = 3;         /* baies cliquables par etage         */
+const MENEAU = 7;        /* ecart entre panneaux ET entre baies */
 const BAT_H = TOIT_H + NIVEAUX * H + RDC_H;   /* hauteur batie totale */
 
 function gabarit() {
@@ -432,11 +453,11 @@ function baie(parent, i, k, x, y, w, h) {
   const b = g(parent, { class: 'baie', id: `baie-${i}-${k}`,
                         'data-etage': i, 'data-travee': k });
 
-  /* le fond de loge, plus sombre que la facade : la baie s'enfonce */
-  rect(b, x - 5, y - 5, w + 10, h + 10, C.facadeOmbre, { rx: 2 });
-
-  /* les panneaux vitres, separes par des meneaux de facade */
-  const np = 3, ecart = 5;
+  /* les panneaux vitres, separes par des meneaux. L'ecart est le meme
+     entre deux baies qu'entre deux panneaux : d'un bout a l'autre de
+     l'etage le vitrage se lit comme un seul mur-rideau, comme sur la
+     reference, et non comme trois fenetres posees sur un mur. */
+  const np = 3, ecart = MENEAU;
   const pw = (w - ecart * (np - 1)) / np;
   for (let p = 0; p < np; p++) {
     const px = x + p * (pw + ecart);
@@ -453,17 +474,19 @@ function baie(parent, i, k, x, y, w, h) {
     rect(b, px, y + h - h * .17, pw, 2.4, C.facadeHaut, { op: .8 });
   }
 
-  /* le cadre : discret au repos, franc au survol */
-  el(b, 'rect', { class: 'cadre', x: n1(x - 5), y: n1(y - 5),
-                  width: n1(w + 10), height: n1(h + 10), rx: 2,
+  /* l'allege : visible au repos, c'est le repere de la zone cliquable */
+  rect(b, x, y + h - 5, w, 5, '#dcc9a6', { class: 'allege', op: .4 });
+  /* le cadre : invisible au repos, franc au survol */
+  el(b, 'rect', { class: 'cadre', x: n1(x - 4), y: n1(y - 4),
+                  width: n1(w + 8), height: n1(h + 8), rx: 2,
                   fill: 'none', 'stroke-width': 2 });
   /* le vitrage qui s'eclaircit au survol */
   /* teinte CHAUDE : un blanc casse pose sur du verre sombre vire au
      gris et la baie survolee se depolissait au lieu de s'allumer */
   rect(b, x, y, w, h, '#f7dfae', { class: 'vitrage', op: 0 });
   /* le halo, invisible au repos */
-  el(b, 'rect', { class: 'halo', x: n1(x - 12), y: n1(y - 12),
-                  width: n1(w + 24), height: n1(h + 24), rx: 5,
+  el(b, 'rect', { class: 'halo', x: n1(x - 11), y: n1(y - 11),
+                  width: n1(w + 22), height: n1(h + 22), rx: 5,
                   fill: 'none', stroke: '#f4e2c6', 'stroke-width': 5, 'stroke-opacity': .5 });
   return b;
 }
@@ -494,9 +517,9 @@ function etage(parent, i, G, Y, opt = {}) {
   rect(n, x0, DALLE, LARG, 10, C.facadeOmbre, { op: .55 });
 
   /* --- 2. les baies --- */
-  const marge = 34, ecart = 18;
+  const marge = 24, ecart = MENEAU;
   const bw = (LARG - marge * 2 - ecart * (BAIES - 1)) / BAIES;
-  const by = DALLE + 30, bh = haut - DALLE - 64;
+  const by = DALLE + 22, bh = haut - DALLE - 44;
   for (let k = 0; k < BAIES; k++) {
     baie(n, i, k, x0 + marge + k * (bw + ecart), by, bw, bh);
   }
@@ -508,12 +531,11 @@ function etage(parent, i, G, Y, opt = {}) {
 
   /* --- 4. la plantation, d'un bout a l'autre de la dalle --- */
   const v = g(n, { class: 'verdure' });
-  bandePlantee(v, x0 - OVER + 6, LARG + OVER * 2 - 12, 0, { dense: opt.dense });
-  /* un sujet qui monte plus haut, pour casser la ligne */
-  if (opt.dense || rnd() < .7) {
-    massif(v, x0 + rr(40, LARG - 40), -rr(50, opt.dense ? 150 : 90),
-           rr(120, 180), rr(85, 140), { dens: 1.15, clair: true });
-  }
+  /* Toute la plantation passe par la bande : le massif d'accent que
+     posait ici l'ancienne version flottait a cinquante unites au-dessus
+     de la dalle, sans bac ni rien dessous. C'est la variation de
+     stature des groupes qui casse la ligne, pas une masse en l'air. */
+  bandePlantee(v, x0 - OVER + 4, LARG + OVER * 2 - 8, 0, { dense: opt.dense });
   return n;
 }
 
@@ -535,7 +557,7 @@ function construire() {
   CIEL_H = Math.round(vueH * 1.08);
   Y0 = CIEL_H + TOIT_H;                    /* haut du dernier etage  */
   SOL_Y = Y0 + NIVEAUX * H + RDC_H;
-  const SOL_H = 215;                       /* juste de quoi poser la rue */
+  const SOL_H = 170;                       /* juste de quoi poser la rue */
   MONDE_H = SOL_Y + SOL_H;
 
   const svg = document.getElementById('toile');
@@ -655,24 +677,27 @@ function construire() {
   /* l'entree : un hall vitre, chaud, et son auvent */
   const ex = x0 + LARG * .38, ew = LARG * .24, eh = 156;
   rect(rez, ex - 10, RDC_H - eh - 10, ew + 20, eh + 10, C.facadeOmbre);
-  /* deux vantaux vitres, la lumiere du hall derriere */
+  /* Deux vantaux VITRES, avec la lumiere du hall qui monte du bas. En
+     aplat chaud sur toute leur hauteur, ils se lisaient comme un pan de
+     carton beige colle au milieu de la facade. */
   for (let v2 = 0; v2 < 2; v2++) {
-    const vx = ex + v2 * (ew / 2 + 3);
-    rect(rez, vx, RDC_H - eh, ew / 2 - 3, eh, C.chaud, { op: .8 });
-    rect(rez, vx + 4, RDC_H - eh + 5, ew / 2 - 11, eh - 10, '#eddcbc', { op: .45 });
+    const vx = ex + v2 * (ew / 2 + 3), vw = ew / 2 - 3;
+    rect(rez, vx, RDC_H - eh, vw, eh, C.vitreB);
+    rect(rez, vx, RDC_H - eh * .62, vw, eh * .62, C.chaud, { op: .55 });
+    poly(rez, [[vx, RDC_H - eh], [vx + vw, RDC_H - eh],
+               [vx + vw, RDC_H - eh * .74], [vx, RDC_H - eh * .62]], C.reflet, { op: .16 });
     /* la traverse du vantail */
-    rect(rez, vx, RDC_H - eh * .34, ew / 2 - 3, 3, C.facadeOmbre, { op: .55 });
+    rect(rez, vx, RDC_H - eh * .62, vw, 3, C.facadeOmbre, { op: .6 });
     /* la poignee */
-    rect(rez, vx + (v2 ? 8 : ew / 2 - 15), RDC_H - eh * .52, 4, 30, C.facadeOmbre, { op: .8 });
+    rect(rez, vx + (v2 ? 8 : vw - 12), RDC_H - eh * .46, 4, 32, C.facadeOmbre, { op: .85 });
   }
   /* l'auvent et son ombre portee */
   rect(rez, ex - 34, RDC_H - eh - 26, ew + 68, 16, C.dalle);
   rect(rez, ex - 34, RDC_H - eh - 26, ew + 68, 4, C.dalleHaut);
   rect(rez, ex - 34, RDC_H - eh - 10, ew + 68, 7, C.facadeOmbre, { op: .5 });
-  /* deux bacs encadrent la porte */
-  const vr = g(rez, { class: 'verdure' });
-  bac(vr, ex - 92, RDC_H, 58, 108, { dens: 1.15, clair: true });
-  bac(vr, ex + ew + 34, RDC_H, 58, 108, { dens: 1.15, clair: true });
+  /* Pas de bacs de part et d'autre de la porte : la haie du pied les
+     recouvrait et il n'en depassait que deux moignons de terre cuite
+     plaques sur la facade. */
 
   /* ------------------------------------------------------------------
      LE PIED : haies et arbres, poses en dernier pour passer DEVANT le
@@ -684,23 +709,35 @@ function construire() {
   for (let hx = x0 - OVER - 70; hx < x0 + LARG + OVER + 70; hx += rr(38, 58)) {
     massif(vp, hx, SOL_Y - rr(28, 44), rr(96, 144), rr(56, 84), { dens: .9, clair: rnd() < .35 });
   }
-  /* les arbres : deux groupes serres, un de chaque cote */
+  /* Les arbres : trois de chaque cote, ECARTES a pas regulier. Tires au
+     hasard dans une bande etroite, ils se chevauchaient au point que la
+     couronne du plus grand recouvrait entierement celle du voisin — il
+     ne restait de lui qu'un tronc plante tout seul dans le trottoir. */
   const arbres = [];
-  for (let i = 0; i < 5; i++) arbres.push({ x: x0 - OVER - rr(10, VW * .26), h: rr(205, 320) });
-  for (let i = 0; i < 5; i++) arbres.push({ x: x0 + LARG + OVER + rr(10, VW * .26), h: rr(205, 320) });
+  for (let c = 0; c < 2; c++) {
+    const dir = c ? 1 : -1;
+    const base = c ? x0 + LARG + OVER : x0 - OVER;
+    for (let i = 0; i < 3; i++) {
+      arbres.push({ x: base + dir * (30 + i * VW * .17 + rr(-18, 18)), h: rr(205, 315) });
+    }
+  }
   /* les plus petits d'abord : les grands passent devant */
   arbres.sort((a, b) => a.h - b.h);
   for (const a of arbres) arbre(vp, a.x, SOL_Y + rr(10, 50), a.h);
   /* Un rideau de buissons tout devant, pose sur une MEME assise : tires
      a des hauteurs libres, ils donnaient l'impression de flotter chacun
      a son etage au-dessus du trottoir. */
-  /* le pas suit la largeur de la vue : fixe, il ne laissait qu'une ou
-     deux grappes sur un cadrage etroit */
-  for (let bx = -VW * .08; bx < VW * 1.08; bx += rr(VW * .21, VW * .36)) {
+  /* Le rideau de buissons du premier plan. Le pas suit la largeur de la
+     vue — fixe, il ne laissait qu'une ou deux grappes sur un cadrage
+     etroit — et il se tient PRES du pied du batiment : rejete tout en
+     bas, il laissait entre lui et l'immeuble une esplanade vide qui
+     coupait le dessin en deux. */
+  for (let bx = -VW * .08; bx < VW * 1.08; bx += rr(VW * .16, VW * .27)) {
     const n = ri(2, 3);
     for (let j = 0; j < n; j++) {
-      massif(vp, bx + j * rr(46, 72), SOL_Y + rr(72, 90), rr(104, 168), rr(56, 98),
-             { dens: 1, clair: rnd() < .4 });
+      const cx = bx + j * rr(44, 68), cy = SOL_Y + rr(40, 62), h = rr(56, 96);
+      ell(vp, cx, cy + h * .46, h * .78, h * .10, C.solOmbre, { op: .55 });
+      massif(vp, cx, cy, rr(104, 168), h, { dens: 1, clair: rnd() < .4 });
     }
   }
 
@@ -735,8 +772,12 @@ function lireDefilement() {
    toiture etait deja la. La mire suit donc le meme point qu'eux. */
 function nomme(y, hVue) {
   const mire = y + hVue * .62;
+  /* le bas de la course est toujours la rue, quel que soit le format :
+     sur un cadrage etroit la mire n'atteignait jamais le trottoir et la
+     descente se terminait sur « Etage 1 » */
+  if (y >= MONDE_H - hVue - 2) return 'Rue';
   if (mire < CIEL_H + 24) return 'Ciel';
-  if (mire > SOL_Y - 30) return 'Rue';
+  if (mire > SOL_Y - 60) return 'Rue';
   if (mire < Y0 + 24) return 'Terrasse';
   const i = Math.floor((mire - Y0) / H);
   if (i >= NIVEAUX) return 'Rez-de-chaussée';
