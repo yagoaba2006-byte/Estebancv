@@ -161,8 +161,10 @@
     margin-top:1.4rem;max-width:36rem;
     font-size:clamp(.96rem,.9rem + .35vw,1.12rem);line-height:1.62;color:var(--encre-douce);
   }
+  /* en bloc, pas en inline-flex : conteneur flex, la fleche devenait un
+     element a part que le texte abandonnait au bout de la ligne */
   #presentation .invite{
-    margin-top:2.2rem;display:inline-flex;align-items:center;gap:.7rem;
+    margin-top:2.2rem;max-width:30rem;
     font-size:.68rem;font-weight:500;letter-spacing:.17em;text-transform:uppercase;
     color:var(--encre-douce);
   }
@@ -179,69 +181,91 @@
   }
 
   /* ================================================================
-     LE PANNEAU DE LECTURE, ouvert par une baie.
-     Non modal : il ne masque pas le dessin et n'enferme pas le focus.
-     Le focus y entre a l'ouverture et revient a la baie a la fermeture.
+     LA PIECE. Cliquer sur une baie n'ouvre pas un panneau a cote du
+     batiment : la camera plonge dans la fenetre et on se retrouve
+     DEDANS. Ce calque est l'interieur de la piece, il couvre tout —
+     c'est donc un vrai dialogue modal, avec piege a focus et fond
+     rendu inerte.
      ================================================================ */
-  #panneau{
-    position:fixed;z-index:6;right:var(--gouttiere);top:50%;transform:translateY(-50%);
-    width:min(25rem,calc(100vw - 2 * var(--gouttiere)));max-height:min(32rem,76vh);
+  #interieur{
+    position:fixed;inset:0;z-index:7;
+    background:
+      radial-gradient(120% 90% at 50% 0%,rgba(255,255,255,.9) 0%,rgba(255,255,255,0) 58%),
+      linear-gradient(170deg,#fbf4e8 0%,#f6efe3 46%,#efe7da 100%);
     display:flex;flex-direction:column;
-    background:#fdfefe;border:1px solid rgba(43,49,56,.1);border-radius:14px;
-    box-shadow:0 18px 48px -22px rgba(43,49,56,.42),0 2px 10px -4px rgba(43,49,56,.16);
-    padding:1.5rem 1.5rem 1.6rem;
+    opacity:0;transition:opacity .34s ease .22s;
   }
-  #panneau[hidden]{display:none}
-  #panneau.entre{animation:panneauEntre .28s cubic-bezier(.22,.68,.16,1)}
-  @keyframes panneauEntre{from{opacity:0;transform:translateY(calc(-50% + 14px))}
-                          to{opacity:1;transform:translateY(-50%)}}
-  .panneau-tete{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}
-  .panneau-niveau{
-    font-size:.62rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;
-    color:var(--accent);
+  #interieur[hidden]{display:none}
+  #interieur.dedans{opacity:1}
+  /* l'embrasure : le bord de la baie par laquelle on vient d'entrer */
+  #interieur::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    box-shadow:inset 0 0 0 10px #2f3139,inset 0 0 0 16px #e9bba9,
+               inset 0 26px 60px -28px rgba(47,49,57,.5);
   }
-  #panneau h2{
-    margin-top:.45rem;font-size:1.32rem;font-weight:600;letter-spacing:-.015em;
-    line-height:1.2;color:var(--encre);
+  /* le bloc se centre verticalement tant qu'il tient dans la piece ;
+     au-dela il defile. Avec un texte-qui-pousse-la-nav-en-bas, les
+     cartes courtes laissaient un grand vide sous le dernier paragraphe. */
+  .piece{
+    position:relative;flex:1;min-height:0;overflow-y:auto;
+    padding:clamp(4.2rem,9vh,6.4rem) var(--gouttiere) clamp(2rem,5vh,3rem);
+    display:flex;flex-direction:column;
+    /* « safe » est indispensable : un centrage simple dans un conteneur
+       qui defile rogne le DEBUT du contenu, et sur telephone on
+       atterrissait au milieu du texte, titre coupe hors de l'ecran. */
+    justify-content:center;
+    justify-content:safe center;
   }
-  #panneau h2:focus{outline:none}
-  .panneau-lecture{position:relative;min-height:0;display:flex;flex-direction:column}
-  /* un degrade en pied de panneau : sans lui, rien ne signale que le
-     texte continue sous le bord quand la carte est longue */
-  .panneau-lecture::after{
-    content:"";position:absolute;left:0;right:.2rem;bottom:0;height:34px;
-    background:linear-gradient(0deg,#fdfefe 10%,rgba(253,254,254,0) 100%);
-    pointer-events:none;opacity:0;transition:opacity .2s ease;
+  .piece-texte{width:100%;max-width:44rem;margin:0 auto}
+  .int-lieu{
+    font-size:.66rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;
+    color:#6f8a46;
   }
-  .panneau-lecture.deborde::after{opacity:1}
-  #panneau-corps{margin-top:1rem;overflow-y:auto;padding-right:.2rem;scrollbar-width:thin}
-  #panneau-corps p{font-size:.95rem;line-height:1.68;color:#404b52}
-  #panneau-corps p + p{margin-top:.85rem}
-  #panneau-corps strong{color:var(--encre);font-weight:600}
-  /* cible >= 24 px, comme l'exige le critere de taille de cible */
-  #panneau-fermer{
-    flex:none;width:32px;height:32px;border:0;border-radius:9px;cursor:pointer;
-    background:rgba(43,49,56,.06);color:var(--encre);
-    font-size:1.1rem;line-height:1;display:grid;place-items:center;
+  #interieur h2{
+    margin-top:.7rem;font-size:clamp(1.6rem,1.1rem + 1.9vw,2.6rem);
+    font-weight:600;letter-spacing:-.025em;line-height:1.12;color:#2b2a26;
+  }
+  #interieur h2:focus{outline:none}
+  #int-corps{margin-top:1.6rem;max-width:40rem}
+  #int-corps p{font-size:clamp(1rem,.95rem + .3vw,1.12rem);line-height:1.74;color:#4a4740}
+  #int-corps p + p{margin-top:1.1rem}
+  #int-corps strong{color:#2b2a26;font-weight:600}
+  #int-corps em{font-style:italic}
+
+  .int-nav{
+    width:100%;max-width:44rem;margin:2.6rem auto 0;
+    display:flex;gap:.8rem;justify-content:space-between;
+    border-top:1px solid rgba(43,42,38,.12);padding-top:1.1rem;
+  }
+  .int-nav button,#int-sortir{
+    font:inherit;font-size:.78rem;font-weight:500;letter-spacing:.02em;
+    border:0;border-radius:10px;cursor:pointer;
+    padding:.62rem .95rem;min-height:34px;          /* au-dela du minimum de cible */
+    background:rgba(43,42,38,.06);color:#2b2a26;
     transition:background .16s ease;
   }
-  #panneau-fermer:hover{background:rgba(43,49,56,.12)}
-  /* indicateur de focus : 3 px pleins, nettement au-dessus du 3:1 demande */
-  #panneau-fermer:focus-visible{outline:3px solid var(--encre);outline-offset:2px}
+  .int-nav button:hover,#int-sortir:hover{background:rgba(43,42,38,.13)}
+  .int-nav button[disabled]{opacity:.34;cursor:default;background:rgba(43,42,38,.05)}
+  .int-nav button:focus-visible,#int-sortir:focus-visible{
+    outline:3px solid #2b2a26;outline-offset:3px;
+  }
+  #int-sortir{
+    position:absolute;top:clamp(1rem,2.4vh,1.7rem);right:var(--gouttiere);z-index:1;
+    /* opaque : il surplombe un texte qui defile dessous */
+    background:#f3ebdd;box-shadow:0 2px 10px -4px rgba(43,42,38,.3);
+  }
+  #int-sortir:hover{background:#eadfcc}
 
   @media (max-width:700px){
-    #panneau{
-      right:0;left:0;top:auto;bottom:0;transform:none;
-      width:100%;max-height:60vh;border-radius:16px 16px 0 0;border-bottom:0;
-      padding:1.25rem 1.25rem 1.6rem;
-    }
-    #panneau.entre{animation:panneauMonte .28s cubic-bezier(.22,.68,.16,1)}
-    @keyframes panneauMonte{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+    /* de quoi passer sous le bouton « Ressortir », qui est fixe */
+    .piece{padding-top:4.8rem}
+    .int-nav{flex-direction:column}
+    .int-nav button{text-align:left}
   }
 
   @media (prefers-reduced-motion:reduce){
     html{scroll-behavior:auto}
-    #panneau.entre{animation:none}
+    #interieur{transition:none}
     #indice .rail::after{animation:none;height:40px;opacity:.5}
     .niveau,.niveau .verdure{transition:none}
     .oiseau,.nuage{animation:none !important}
@@ -249,6 +273,58 @@
   @media (max-width:700px){
     :root{--gouttiere:5vw}
     .meta{display:none}
+  }
+
+  /* ================================================================
+     ECRANS COURTS. Sur un 320x568 et en paysage telephone, le bloc de
+     presentation etait plus haut que la fenetre : le titre se coupait
+     en haut, le courriel sortait par le bas, et la ligne d'invite
+     venait se poser sur l'indice « Descendre ».
+     ================================================================ */
+  @media (max-height:700px),(max-width:360px){
+    /* De la place pour l'entete : centre dans toute la hauteur, le haut
+       du bloc passait DERRIERE le bandeau du nom et la ligne de lieu
+       disparaissait. */
+    #presentation{padding-top:3.5rem;padding-bottom:1.4rem}
+    #presentation .lieu{margin-bottom:.7rem;font-size:.62rem}
+    #presentation h1{font-size:clamp(1.75rem,1rem + 3.6vw,2.5rem)}
+    #presentation .role{margin-top:.35rem;font-size:.98rem}
+    #presentation .accroche{margin-top:.9rem;font-size:.86rem;line-height:1.52}
+    #presentation .invite{margin-top:1.25rem}
+    #presentation .contact{margin-top:.6rem;font-size:.86rem}
+    /* l'invite dit deja de descendre : le rail faisait doublon et se
+       superposait a elle faute de place */
+    #indice{display:none}
+  }
+
+  /* Les plus petits ecrans portrait : on resserre encore, sinon le
+     courriel et le titre ne tiennent pas ensemble. */
+  @media (max-height:640px) and (max-width:420px){
+    #presentation h1{font-size:1.62rem}
+    #presentation .role{font-size:.9rem}
+    #presentation .accroche{font-size:.79rem;line-height:1.46}
+    #presentation .invite{margin-top:1rem;font-size:.62rem}
+  }
+
+  /* En paysage il reste de la largeur, pas de la hauteur : on passe le
+     bloc sur deux colonnes plutot que de rogner le texte. */
+  @media (max-height:560px) and (min-width:620px){
+    #presentation{
+      display:grid;align-content:center;max-width:min(64rem,94vw);
+      grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);
+      gap:0 2.8rem;
+      grid-template-areas:
+        "lieu     accroche"
+        "titre    accroche"
+        "role     accroche"
+        "invite   contact";
+    }
+    #presentation .lieu{grid-area:lieu}
+    #presentation h1{grid-area:titre}
+    #presentation .role{grid-area:role}
+    #presentation .accroche{grid-area:accroche;margin-top:0;align-self:center;max-width:none}
+    #presentation .invite{grid-area:invite;margin-top:1.1rem}
+    #presentation .contact{grid-area:contact;margin-top:1.1rem;align-self:end;text-align:right}
   }
 </style>
 </head>
@@ -269,7 +345,7 @@
     technologies — l'IA en particulier — peuvent y répondre. J'ai déjà passé un mois à
     diagnostiquer la thermique d'un atelier en production : j'en ai rapporté qu'une idée
     écologique ne vaut que si elle tient aussi économiquement.</p>
-  <p class="invite">Cinq étages, cinq lieux — chaque fenêtre s'ouvre <b>↓</b></p>
+  <p class="invite">Cinq étages, cinq lieux — chaque fenêtre s'ouvre&nbsp;<b>↓</b></p>
   <p class="contact"><a href="mailto:esteban.aba2005@gmail.com">esteban.aba2005@gmail.com</a></p>
 </section>
 
@@ -283,16 +359,20 @@
 <p id="compteur" aria-hidden="true">Ciel</p>
 <div id="progression" aria-hidden="true"><i></i></div>
 
-<aside id="panneau" role="dialog" aria-labelledby="panneau-titre" hidden>
-  <div class="panneau-tete">
-    <div>
-      <p class="panneau-niveau" id="panneau-niveau"></p>
-      <h2 id="panneau-titre" tabindex="-1"></h2>
+<section id="interieur" role="dialog" aria-modal="true" aria-labelledby="int-titre" hidden>
+  <div class="piece">
+    <div class="piece-texte">
+      <p class="int-lieu" id="int-lieu"></p>
+      <h2 id="int-titre" tabindex="-1"></h2>
+      <div id="int-corps"></div>
     </div>
-    <button id="panneau-fermer" type="button" aria-label="Fermer le panneau">✕</button>
+    <nav class="int-nav" aria-label="Navigation entre les fenêtres">
+      <button id="int-prec" type="button"><span aria-hidden="true">←</span> Fenêtre précédente</button>
+      <button id="int-suiv" type="button">Fenêtre suivante <span aria-hidden="true">→</span></button>
+    </nav>
   </div>
-  <div class="panneau-lecture"><div id="panneau-corps"></div></div>
-</aside>
+  <button id="int-sortir" type="button">Ressortir <span aria-hidden="true">✕</span></button>
+</section>
 
 <script type="module">
 /* ==================================================================
@@ -689,9 +769,12 @@ function gabarit() {
  *    et son rang, avec un cadre clair visible au repos pour qu'on
  *    devine la zone, et un halo qui s'allume au survol.
  * ================================================================== */
-function baie(parent, i, k, x, y, w, h) {
+function baie(parent, i, k, x, y, w, h, Y) {
   const b = g(parent, { class: 'baie', id: `baie-${i}-${k}`,
-                        'data-etage': i, 'data-travee': k });
+                        'data-etage': i, 'data-travee': k,
+                        /* le centre de la baie dans le monde : c'est la
+                           cible de la camera quand on entre dedans */
+                        'data-cx': n1(x + w / 2), 'data-cy': n1(Y + y + h / 2) });
 
   /* les panneaux vitres, separes par des meneaux. L'ecart est le meme
      entre deux baies qu'entre deux panneaux : d'un bout a l'autre de
@@ -767,7 +850,7 @@ function etage(parent, i, G, Y, opt = {}) {
   const bw = (LARG - marge * 2 - ecart * (BAIES - 1)) / BAIES;
   const by = DALLE + 22, bh = haut - DALLE - 44;
   for (let k = 0; k < BAIES; k++) {
-    baie(n, i, k, x0 + marge + k * (bw + ecart), by, bw, bh);
+    baie(n, i, k, x0 + marge + k * (bw + ecart), by, bw, bh, Y);
   }
 
   /* --- 3. la dalle --- */
@@ -816,11 +899,17 @@ function construire() {
   el(lg, 'stop', { offset: '0%', 'stop-color': C.cielHaut });
   el(lg, 'stop', { offset: '62%', 'stop-color': C.brume });
   el(lg, 'stop', { offset: '100%', 'stop-color': C.cielBas });
-  el(svg, 'rect', { x: -VW, y: -MONDE_H, width: VW * 3, height: MONDE_H * 3, fill: 'url(#ciel)' });
+  /* Tout le dessin vit dans un groupe CAMERA. Le defilement se joue
+     sur les plans qu'il contient ; l'entree dans une baie se joue sur
+     la camera elle-meme. Deux transformations distinctes sur deux
+     elements distincts : sur un meme noeud, la seconde ecraserait la
+     premiere a chaque image. */
+  const camera = g(svg, { id: 'camera' });
+  el(camera, 'rect', { x: -VW, y: -MONDE_H, width: VW * 3, height: MONDE_H * 3, fill: 'url(#ciel)' });
 
-  const planCiel = g(svg, { id: 'plan-ciel' });   /* nuages, oiseaux : parallaxe */
-  const planLoin = g(svg, { id: 'plan-loin' });   /* la ville, calee sur le sol  */
-  const planPres = g(svg, { id: 'plan-pres' });
+  const planCiel = g(camera, { id: 'plan-ciel' });  /* nuages, oiseaux : parallaxe */
+  const planLoin = g(camera, { id: 'plan-loin' });  /* la ville, calee sur le sol  */
+  const planPres = g(camera, { id: 'plan-pres' });
 
   /* --- nuages, sans contour comme tout le reste --- */
   for (const n of [{ x: VW * .22, y: 140, s: 1 }, { x: VW * .78, y: 310, s: .72 },
@@ -995,7 +1084,8 @@ function construire() {
      un plan qui defile a une autre vitesse que le reste est exactement
      ce qui declenche le mal des transports. Le ciel suit alors le
      batiment, et la scene reste lisible de bout en bout. */
-  return { svg, planCiel, planLoin, planPres, viteCiel: reduit ? 1 : .32 };
+  return { svg, camera, planCiel, planLoin, planPres,
+           cx: VW / 2, cy: vueH / 2, viteCiel: reduit ? 1 : .32 };
 }
 
 /* ==================================================================
@@ -1004,6 +1094,11 @@ function construire() {
 const reduit = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let vue = construire();
 let camY = null, cible = 0;
+/* La camera : 1 au repos, K une fois entre dans une baie. On interpole
+   vers la cible image par image, comme pour le defilement. */
+const K_DEDANS = 3.4;
+let zK = 1, zX = null, zY = null;
+let zKc = 1, zXc = null, zYc = null;
 
 const barre = document.querySelector('#progression i');
 const compteur = document.getElementById('compteur');
@@ -1037,6 +1132,13 @@ function image() {
   if (camY === null) camY = cible;
   else camY += (cible - camY) * (reduit ? 1 : .12);
 
+  if (zXc === null) { zXc = vue.cx; zYc = vue.cy; zX = vue.cx; zY = vue.cy; }
+  const lis = reduit ? 1 : .16;
+  zK += (zKc - zK) * lis; zX += (zXc - zX) * lis; zY += (zYc - zY) * lis;
+  vue.camera.setAttribute('transform',
+    `translate(${vue.cx.toFixed(2)}, ${vue.cy.toFixed(2)}) scale(${zK.toFixed(4)}) `
+    + `translate(${(-zX).toFixed(2)}, ${(-zY).toFixed(2)})`);
+
   const d = `translate(0, ${(-camY).toFixed(2)})`;
   vue.planPres.setAttribute('transform', d);
   vue.planLoin.setAttribute('transform', d);
@@ -1065,8 +1167,9 @@ addEventListener('resize', () => {
   minuteur = setTimeout(() => {
     if (Math.abs(innerWidth - largeurCourante) > 2 || Math.abs(innerHeight - hauteurCourante) > 2) {
       largeurCourante = innerWidth; hauteurCourante = innerHeight;
-      fermer(false);               /* la baie ouverte va etre detruite */
+      sortir(false);               /* la baie ouverte va etre detruite */
       vue = construire();
+      zXc = zX = vue.cx; zYc = zY = vue.cy; zKc = zK = 1;
       niveauxDom = [...document.querySelectorAll('.niveau')];
       brancherBaies();
     }
@@ -1076,18 +1179,25 @@ addEventListener('resize', () => {
 addEventListener('scroll', lireDefilement, { passive: true });
 
 /* ==================================================================
- * 9. LES BAIES SONT LES BOUTONS
- *    Une baie n'est cliquable que si une carte lui repond : marquer
- *    toute la facade donnerait quinze curseurs « main » dont la
- *    moitie n'ouvrirait rien. Elles portent role, tabindex et un nom
- *    accessible, et s'actionnent aussi bien a la souris qu'au clavier.
+ * 9. ENTRER DANS UNE BAIE
+ *    Cliquer sur une fenetre ne pose pas un panneau a cote du
+ *    batiment : la camera plonge dans la baie et le calque de la
+ *    piece prend la place. On est dedans, pas a cote.
+ *    Comme ce calque couvre tout l'ecran, c'est un dialogue modal :
+ *    focus piege a l'interieur, fond rendu inerte, Echap pour sortir.
  * ================================================================== */
-const panneau = document.getElementById('panneau');
-const panTitre = document.getElementById('panneau-titre');
-const panNiveau = document.getElementById('panneau-niveau');
-const panCorps = document.getElementById('panneau-corps');
+const interieur = document.getElementById('interieur');
+const intLieu = document.getElementById('int-lieu');
+const intTitre = document.getElementById('int-titre');
+const intCorps = document.getElementById('int-corps');
+const btnPrec = document.getElementById('int-prec');
+const btnSuiv = document.getElementById('int-suiv');
 const toile = document.getElementById('toile');
-let baieOuverte = null;
+const CLES = Object.keys(CARTES);
+const inertes = ['entete', 'scene', 'presentation', 'indice', 'compteur', 'progression']
+  .map(id => document.getElementById(id)).filter(Boolean);
+
+let baieOuverte = null, defilementGele = 0;
 
 function brancherBaies() {
   for (const b of document.querySelectorAll('.baie')) {
@@ -1099,76 +1209,122 @@ function brancherBaies() {
     b.setAttribute('role', 'button');
     b.setAttribute('tabindex', '0');
     b.setAttribute('aria-expanded', 'false');
-    b.setAttribute('aria-label', `${LIEUX[b.dataset.etage]} — ${c.titre}`);
+    b.setAttribute('aria-label', `Entrer : ${LIEUX[b.dataset.etage]}, ${c.titre}`);
   }
 }
 
-function ouvrir(b) {
+function entrer(b) {
   const c = CARTES[b.dataset.cle];
   if (!c) return;
+
   if (baieOuverte && baieOuverte !== b) {
     baieOuverte.classList.remove('ouverte');
     baieOuverte.setAttribute('aria-expanded', 'false');
   }
+  const premiereEntree = !baieOuverte;
   baieOuverte = b;
   b.classList.add('ouverte');
   b.setAttribute('aria-expanded', 'true');
 
-  panNiveau.textContent = c.date ? `${LIEUX[b.dataset.etage]} · ${c.date}` : LIEUX[b.dataset.etage];
-  panTitre.textContent = c.titre;
-  panCorps.replaceChildren(...c.p.map(t => {
+  /* On fige le defilement : sans cela la baie visee continue de monter
+     pendant que la camera plonge dessus, et le cadrage derape. */
+  if (premiereEntree) {
+    camY = cible;
+    defilementGele = scrollY;
+    document.body.style.overflow = 'hidden';
+    for (const el of inertes) el.setAttribute('inert', '');
+  }
+
+  /* la cible de la camera : le centre de la baie, dans l'espace du
+     groupe camera — donc la position monde moins le defilement */
+  zKc = K_DEDANS;
+  zXc = +b.dataset.cx;
+  zYc = +b.dataset.cy - camY;
+
+  intLieu.textContent = c.date ? `${LIEUX[b.dataset.etage]} · ${c.date}` : LIEUX[b.dataset.etage];
+  intTitre.textContent = c.titre;
+  intCorps.replaceChildren(...c.p.map(t => {
     const el = document.createElement('p');
     el.innerHTML = t;
     return el;
   }));
-  panCorps.scrollTop = 0;
-  panneau.hidden = false;
-  panneau.classList.remove('entre');
-  void panneau.offsetWidth;          /* relance l'animation d'entree */
-  panneau.classList.add('entre');
-  panTitre.focus({ preventScroll: true });
-  majDebordement();
+  const i = CLES.indexOf(b.dataset.cle);
+  btnPrec.disabled = i <= 0;
+  btnSuiv.disabled = i >= CLES.length - 1;
+
+  interieur.hidden = false;
+  void interieur.offsetWidth;
+  interieur.classList.add('dedans');
+  document.querySelector('.piece').scrollTop = 0;
+  intTitre.focus({ preventScroll: true });
 }
 
-/* le degrade de pied ne s'affiche que s'il reste du texte a lire */
-const lecture = document.querySelector('.panneau-lecture');
-function majDebordement() {
-  const reste = panCorps.scrollHeight - panCorps.clientHeight - panCorps.scrollTop;
-  lecture.classList.toggle('deborde', reste > 8);
-}
-panCorps.addEventListener('scroll', majDebordement, { passive: true });
-
-function fermer(rendreLeFocus = true) {
+function sortir(rendreLeFocus = true) {
   if (!baieOuverte) return;
   const b = baieOuverte;
   baieOuverte = null;
   b.classList.remove('ouverte');
   b.setAttribute('aria-expanded', 'false');
-  panneau.hidden = true;
+  interieur.classList.remove('dedans');
+  zKc = 1; zXc = vue.cx; zYc = vue.cy;
+  for (const el of inertes) el.removeAttribute('inert');
+  document.body.style.overflow = '';
+  scrollTo(0, defilementGele);
+  const finir = () => { if (!baieOuverte) interieur.hidden = true; };
+  reduit ? finir() : setTimeout(finir, 340);
   if (rendreLeFocus) b.focus({ preventScroll: true });
+}
+
+function voisine(pas) {
+  if (!baieOuverte) return;
+  const i = CLES.indexOf(baieOuverte.dataset.cle) + pas;
+  if (i < 0 || i >= CLES.length) return;
+  const suiv = document.getElementById('baie-' + CLES[i]);
+  if (suiv) entrer(suiv);
 }
 
 toile.addEventListener('click', e => {
   const b = e.target.closest('.baie.cliquable');
-  if (b) { b === baieOuverte ? fermer() : ouvrir(b); }
+  if (b) entrer(b);
 });
 toile.addEventListener('keydown', e => {
   if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
   const b = e.target.closest('.baie.cliquable');
   if (!b) return;
   e.preventDefault();                /* sinon l'espace fait defiler */
-  b === baieOuverte ? fermer() : ouvrir(b);
+  entrer(b);
 });
-document.getElementById('panneau-fermer').addEventListener('click', () => fermer());
-addEventListener('keydown', e => { if (e.key === 'Escape') fermer(); });
+document.getElementById('int-sortir').addEventListener('click', () => sortir());
+btnPrec.addEventListener('click', () => voisine(-1));
+btnSuiv.addEventListener('click', () => voisine(1));
+
+addEventListener('keydown', e => {
+  if (!baieOuverte) return;
+  if (e.key === 'Escape') { sortir(); return; }
+  if (e.key === 'ArrowLeft') { voisine(-1); return; }
+  if (e.key === 'ArrowRight') { voisine(1); return; }
+  if (e.key !== 'Tab') return;
+  /* piege a focus : le calque couvre tout, rien derriere ne doit etre
+     atteignable au clavier */
+  const f = [...interieur.querySelectorAll('button:not([disabled]), [href]')];
+  if (!f.length) return;
+  const premier = f[0], dernier = f[f.length - 1];
+  if (e.shiftKey && (document.activeElement === premier || document.activeElement === intTitre)) {
+    e.preventDefault(); dernier.focus();
+  } else if (!e.shiftKey && document.activeElement === dernier) {
+    e.preventDefault(); premier.focus();
+  }
+});
 
 brancherBaies();
 
 window.immeuble = {
-  brancherBaies, ouvrir, fermer,
+  brancherBaies, entrer, sortir, voisine,
   get baies() { return [...document.querySelectorAll('.baie')]; },
   get cliquables() { return [...document.querySelectorAll('.baie.cliquable')]; },
+  get dedans() { return !!baieOuverte; },
   get camY() { return camY; },
+  get zoom() { return zK; },
   CARTES, LIEUX, MONDE_H, NIVEAUX, H,
 };
 
