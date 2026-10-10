@@ -16,7 +16,10 @@
     --ciel-haut:#d9ecf1;
     --ciel-bas:#f1f8fa;
     --encre:#2b3138;
-    --encre-douce:#5d6b72;
+    /* mesure sur le rendu : #5d6b72 ne donnait que 4,36:1 sur le ciel
+       clair, sous le minimum de 4,5:1, et ces libelles font 10 px en
+       capitales. #4a575e monte a 5,9:1 en restant un gris adouci. */
+    --encre-douce:#4a575e;
     --filet:rgba(43,49,56,.16);
     --accent:#6f9a49;
     --gouttiere:3vw;
@@ -745,7 +748,11 @@ function construire() {
   document.getElementById('defilement').style.height =
     Math.max(300, Math.min(900, (MONDE_H / vue()) * 100)) + 'vh';
 
-  return { svg, planCiel, planLoin, planPres, viteCiel: .32 };
+  /* Pas de parallaxe quand l'utilisateur demande moins de mouvement :
+     un plan qui defile a une autre vitesse que le reste est exactement
+     ce qui declenche le mal des transports. Le ciel suit alors le
+     batiment, et la scene reste lisible de bout en bout. */
+  return { svg, planCiel, planLoin, planPres, viteCiel: reduit ? 1 : .32 };
 }
 
 /* ==================================================================
