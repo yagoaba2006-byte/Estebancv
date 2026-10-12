@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Esteban Aba Perea — étudiant ingénieur, énergie &amp; environnement</title>
-<meta name="description" content="Esteban Aba Perea, étudiant ingénieur en énergie et environnement à l'ENSIP. Cinq lieux de parcours, un par étage, du ciel jusqu'à la rue.">
+<meta name="description" content="Esteban Aba Perea, étudiant ingénieur en énergie et environnement à l'ENSIP. Six lieux de parcours, un par étage, du ciel jusqu'à la rue.">
 <meta name="theme-color" content="#d9ecf1">
 <meta name="color-scheme" content="light">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23e0eff4'/><rect x='8' y='7' width='16' height='19' fill='%2331333d'/><rect x='6' y='7' width='20' height='3' fill='%23e9bba9'/><rect x='6' y='14' width='20' height='3' fill='%23e9bba9'/><rect x='6' y='21' width='20' height='3' fill='%23e9bba9'/><circle cx='12' cy='12' r='3' fill='%23729a49'/><circle cx='20' cy='19' r='3' fill='%238fb857'/></svg>">
@@ -97,46 +97,39 @@
     transition:opacity .68s ease .2s,transform .68s cubic-bezier(.22,.68,.16,1) .2s}
   .niveau.vu .verdure{opacity:1;transform:translate(0,0)}
 
-  /* ---- les baies, pretes pour les boutons ----
-     Le cadre clair reste visible au repos : sans trait d'encre dans ce
-     dessin, c'est lui qui dit ou l'on pourra cliquer. ---- */
-  /* La verdure passe DEVANT les baies : sans cette regle elle capte le
-     survol et le clic a sa place, et une moitie de chaque baie devient
-     inerte. C'est du decor, ca ne doit rien intercepter. */
-  .verdure{pointer-events:none}
-  /* Au repos, c'est l'ALLEGE — le bandeau clair sous chaque portion de
-     vitrage — qui dit ou l'on pourra cliquer. Un cadre complet visible
-     en permanence decoupait le mur-rideau continu de la reference en
-     trois fenetres isolees. */
-  .baie .allege{transition:opacity .2s ease,fill .2s ease}
-  .baie .cadre{stroke:transparent;transition:stroke .2s ease,stroke-width .2s ease}
-  .baie .halo{opacity:0;transition:opacity .2s ease}
-  .baie .vitrage{transition:opacity .2s ease}
-  .baie.cliquable{cursor:pointer}
-  .baie.cliquable:hover .allege,
-  .baie.cliquable:focus-visible .allege,
-  .baie.ouverte .allege{opacity:1;fill:#f4e2c6}
-  .baie.cliquable:hover .cadre,
-  .baie.cliquable:focus-visible .cadre,
-  .baie.ouverte .cadre{stroke:#f4e2c6;stroke-width:3}
-  .baie.cliquable:hover .halo,
-  .baie.cliquable:focus-visible .halo{opacity:1}
-  .baie.cliquable:hover .vitrage,
-  .baie.cliquable:focus-visible .vitrage,
-  .baie.ouverte .vitrage{opacity:.4}
+  /* ---- LE BOUTON D'ETAGE ----
+     Une cible par etage, qui couvre tout le mur-rideau. Au repos, c'est
+     l'ALLEGE — le bandeau clair qui court sous le vitrage d'un bout a
+     l'autre — qui dit ou l'on peut cliquer. Laissee sous chaque baie,
+     elle aurait decoupe en trois ce qui est devenu un seul bouton. ---- */
+  .bouton-etage .allege{transition:opacity .2s ease,fill .2s ease}
+  .bouton-etage .cadre{stroke:transparent;transition:stroke .2s ease,stroke-width .2s ease}
+  .bouton-etage .halo{opacity:0;transition:opacity .2s ease}
+  .bouton-etage .vitrage{transition:opacity .2s ease}
+  .bouton-etage.cliquable{cursor:pointer}
+  .bouton-etage.cliquable:hover .allege,
+  .bouton-etage.cliquable:focus-visible .allege,
+  .bouton-etage.ouverte .allege{opacity:1;fill:#f4e2c6}
+  .bouton-etage.cliquable:hover .cadre,
+  .bouton-etage.cliquable:focus-visible .cadre,
+  .bouton-etage.ouverte .cadre{stroke:#f4e2c6;stroke-width:3}
+  .bouton-etage.cliquable:hover .vitrage,
+  .bouton-etage.cliquable:focus-visible .vitrage,
+  .bouton-etage.ouverte .vitrage{opacity:.32}
   /* Le halo sert d'indicateur de focus : il est a DEUX TONS, un cerne
      sombre double d'un cerne creme. Un seul ton ne peut pas tenir le
-     3:1 a la fois sur un panneau de verre sombre et sur un panneau
-     pale — les deux coexistent sur la meme facade. */
-  .baie.cliquable:hover .halo{opacity:.72}
-  .baie.ouverte .halo{opacity:1}
-  .baie:focus{outline:none}
-  .baie.cliquable:focus-visible .halo{opacity:1}
+     contraste a la fois sur un panneau de verre sombre et sur un
+     panneau pale — les deux coexistent sur la meme facade. */
+  .bouton-etage.cliquable:hover .halo{opacity:.72}
+  .bouton-etage.ouverte .halo{opacity:1}
+  .bouton-etage:focus{outline:none}
+  .bouton-etage.cliquable:focus-visible .halo{opacity:1}
 
   /* ================================================================
      LE BLOC DE PRESENTATION, dans le ciel du premier ecran.
      C'est lui qui porte le seul <h1> de la page : les titres des
-     panneaux sont des <h2>, la hierarchie reste sequentielle.
+     pieces sont des <h2>, leurs sections des <h3>, la hierarchie reste
+     sequentielle.
      ================================================================ */
   #presentation{
     position:fixed;inset:0;z-index:2;pointer-events:none;
@@ -161,8 +154,9 @@
     margin-top:1.4rem;max-width:36rem;
     font-size:clamp(.96rem,.9rem + .35vw,1.12rem);line-height:1.62;color:var(--encre-douce);
   }
-  /* en bloc, pas en inline-flex : conteneur flex, la fleche devenait un
-     element a part que le texte abandonnait au bout de la ligne */
+  /* en bloc, pas en inline-flex : dans un conteneur flex, la fleche
+     devenait un element a part que le texte abandonnait au bout de la
+     ligne */
   #presentation .invite{
     margin-top:2.2rem;max-width:30rem;
     font-size:.68rem;font-weight:500;letter-spacing:.17em;text-transform:uppercase;
@@ -180,34 +174,48 @@
     outline:3px solid var(--encre);outline-offset:3px;border-radius:2px;
   }
 
+  /* La verdure passe DEVANT le vitrage : sans cette regle elle capte le
+     survol et le clic a la place du bouton d'etage, et une bonne moitie
+     de la cible devient inerte. C'est du decor, ca n'intercepte rien. */
+  .verdure{pointer-events:none}
+
   /* ================================================================
-     LA PIECE. Cliquer sur une baie n'ouvre pas un panneau a cote du
-     batiment : la camera plonge dans la fenetre et on se retrouve
-     DEDANS. Ce calque est l'interieur de la piece, il couvre tout —
+     LA PIECE. Cliquer sur un etage n'ouvre pas un panneau a cote du
+     batiment : la camera plonge dans le mur-rideau et on se retrouve
+     DEDANS. Ce calque est la piece, dessinee, et il couvre tout —
      c'est donc un vrai dialogue modal, avec piege a focus et fond
      rendu inerte.
      ================================================================ */
   #interieur{
-    position:fixed;inset:0;z-index:7;
-    background:
-      radial-gradient(120% 90% at 50% 0%,rgba(255,255,255,.9) 0%,rgba(255,255,255,0) 58%),
-      linear-gradient(170deg,#fbf4e8 0%,#f6efe3 46%,#efe7da 100%);
+    position:fixed;inset:0;z-index:7;background:#f6efe3;
     display:flex;flex-direction:column;
     opacity:0;transition:opacity .34s ease .22s;
   }
   #interieur[hidden]{display:none}
   #interieur.dedans{opacity:1}
-  /* l'embrasure : le bord de la baie par laquelle on vient d'entrer */
-  #interieur::before{
-    content:"";position:absolute;inset:0;pointer-events:none;
-    box-shadow:inset 0 0 0 10px #2f3139,inset 0 0 0 16px #e9bba9,
-               inset 0 26px 60px -28px rgba(47,49,57,.5);
+  /* la piece dessinee, en fond : on est dans l'etage, face au vitrage */
+  .piece-fond{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+  /* Le voile de lecture. Il est en CSS et non dans le SVG parce qu'il
+     doit se caler sur la COLONNE DE TEXTE : le dessin, lui, est
+     recadre par « slice » et son echelle varie avec le format. Un
+     voile general delaverait tout le dessin pour proteger une colonne
+     qui n'en occupe que le milieu. */
+  .piece-voile{
+    position:absolute;top:0;bottom:0;left:50%;transform:translateX(-50%);
+    width:min(60rem,100%);pointer-events:none;z-index:0;
+    background:linear-gradient(90deg,
+      rgba(253,250,244,0) 0%,rgba(253,250,244,.66) 11%,
+      rgba(253,250,244,.66) 89%,rgba(253,250,244,0) 100%);
   }
-  /* le bloc se centre verticalement tant qu'il tient dans la piece ;
-     au-dela il defile. Avec un texte-qui-pousse-la-nav-en-bas, les
-     cartes courtes laissaient un grand vide sous le dernier paragraphe. */
+  /* un simple assombrissement des bords : un cadre dur ferait une
+     seconde fenetre par-dessus celle qui est dessinee */
+  #interieur::before{
+    content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+    box-shadow:inset 0 0 90px -30px rgba(74,71,64,.32);
+  }
+
   .piece{
-    position:relative;flex:1;min-height:0;overflow-y:auto;
+    position:relative;z-index:1;flex:1;min-height:0;overflow-y:auto;
     padding:clamp(4.2rem,9vh,6.4rem) var(--gouttiere) clamp(2rem,5vh,3rem);
     display:flex;flex-direction:column;
     /* « safe » est indispensable : un centrage simple dans un conteneur
@@ -219,50 +227,92 @@
   .piece-texte{width:100%;max-width:44rem;margin:0 auto}
   .int-lieu{
     font-size:.66rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;
-    color:#6f8a46;
+    color:#3c5127;
   }
   #interieur h2{
     margin-top:.7rem;font-size:clamp(1.6rem,1.1rem + 1.9vw,2.6rem);
     font-weight:600;letter-spacing:-.025em;line-height:1.12;color:#2b2a26;
   }
   #interieur h2:focus{outline:none}
-  #int-corps{margin-top:1.6rem;max-width:40rem}
-  #int-corps p{font-size:clamp(1rem,.95rem + .3vw,1.12rem);line-height:1.74;color:#4a4740}
-  #int-corps p + p{margin-top:1.1rem}
+  #int-corps{margin-top:1.8rem;max-width:40rem}
+  .section-piece + .section-piece{margin-top:2.5rem}
+  /* Le dore d'origine tombait a 1,7:1 au-dessus d'une jardiniere : le
+     fond de la piece est dessine, un sous-titre y traverse de la terre
+     cuite comme du feuillage. Cette valeur-ci tient 5:1 partout. */
+  #int-corps h3{
+    font-size:.68rem;font-weight:600;letter-spacing:.17em;text-transform:uppercase;
+    color:#38301e;margin-bottom:.85rem;
+    padding-bottom:.5rem;border-bottom:1px solid rgba(140,116,70,.42);
+  }
+  #int-corps p{font-size:clamp(1rem,.95rem + .3vw,1.1rem);line-height:1.74;color:#454138}
+  #int-corps p + p{margin-top:1.05rem}
   #int-corps strong{color:#2b2a26;font-weight:600}
   #int-corps em{font-style:italic}
 
-  /* ---- un tableau de chiffres dans une carte ---- */
-  .chiffres{margin:1.5rem 0 0;overflow-x:auto}
+  /* ---- un tableau de chiffres dans une section ---- */
+  .chiffres{margin:1.4rem 0 0;overflow-x:auto}
   .chiffres table{border-collapse:collapse;width:100%;font-size:.86rem}
   .chiffres th,.chiffres td{
     text-align:left;padding:.56rem .7rem .56rem 0;
-    border-bottom:1px solid rgba(43,42,38,.12);vertical-align:top;
+    border-bottom:1px solid rgba(43,42,38,.14);vertical-align:top;
   }
   .chiffres thead th{
     font-size:.6rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
-    color:#7a7466;border-bottom-color:rgba(43,42,38,.24);padding-bottom:.45rem;
+    color:#776f5e;border-bottom-color:rgba(43,42,38,.26);padding-bottom:.45rem;
   }
   .chiffres tbody th{font-weight:600;color:#2b2a26;padding-right:1.2rem}
-  .chiffres tbody td{color:#55514a;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .chiffres tbody td{color:#514c43;font-variant-numeric:tabular-nums;white-space:nowrap}
   .chiffres tbody tr:last-child th,.chiffres tbody tr:last-child td{border-bottom:0}
 
   /* ---- la mention : elle doit se distinguer du recit ---- */
   #int-corps p.mention{
     margin-top:1.1rem;padding:.85rem 1rem;border-radius:9px;
-    border-left:4px solid #d08a68;background:rgba(233,187,169,.22);
-    font-size:.88rem;line-height:1.58;color:#5a5047;
+    border-left:4px solid #d08a68;background:rgba(233,187,169,.3);
+    font-size:.88rem;line-height:1.58;color:#564c42;
   }
   #int-corps p.mention strong{color:#8c4a28}
 
+  .int-nav{
+    width:100%;max-width:44rem;margin:2.8rem auto 0;
+    display:flex;gap:.8rem;justify-content:space-between;
+    border-top:1px solid rgba(43,42,38,.14);padding-top:1.1rem;
+  }
+  .int-nav button,#int-sortir{
+    font:inherit;font-size:.78rem;font-weight:500;letter-spacing:.02em;
+    border:0;border-radius:10px;cursor:pointer;
+    padding:.62rem .95rem;min-height:34px;          /* au-dela du minimum de cible */
+    background:rgba(43,42,38,.07);color:#2b2a26;
+    transition:background .16s ease;
+  }
+  .int-nav button:hover,#int-sortir:hover{background:rgba(43,42,38,.15)}
+  .int-nav button[disabled]{opacity:.34;cursor:default;background:rgba(43,42,38,.05)}
+  .int-nav button:focus-visible,#int-sortir:focus-visible{
+    outline:3px solid #2b2a26;outline-offset:3px;
+  }
+
+  /* Un BANDEAU degrade, pas un bouton flottant seul : pose nu au-dessus
+     d'un texte qui defile, il en masquait une ligne par le milieu. */
+  .piece-barre{
+    position:absolute;top:0;left:0;right:0;z-index:2;pointer-events:none;
+    height:clamp(3.6rem,8vh,5rem);
+    display:flex;align-items:center;justify-content:flex-end;
+    padding:0 var(--gouttiere);
+    background:linear-gradient(180deg,#fbf6ec 46%,rgba(251,246,236,0) 100%);
+  }
+  #int-sortir{pointer-events:auto}
+
+  @media (max-width:700px){
+    /* de quoi passer sous le bouton « Ressortir », qui est fixe */
+    .piece{padding-top:4.8rem}
+    .int-nav{flex-direction:column}
+    .int-nav button{text-align:left}
+  }
   @media (max-width:620px){
     /* quatre colonnes ne tiennent pas sur un telephone : chaque ligne
        devient un bloc, et chaque valeur porte le nom de sa colonne */
     .chiffres thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
     .chiffres table,.chiffres tbody,.chiffres tr,.chiffres th,.chiffres td{display:block;width:100%}
-    .chiffres tbody tr{
-      padding:.7rem 0;border-bottom:1px solid rgba(43,42,38,.12);
-    }
+    .chiffres tbody tr{padding:.7rem 0;border-bottom:1px solid rgba(43,42,38,.14)}
     .chiffres tbody tr:last-child{border-bottom:0}
     .chiffres tbody th{padding:0 0 .35rem;border:0;font-size:.95rem}
     .chiffres tbody td{
@@ -272,45 +322,8 @@
     .chiffres tbody td::before{
       content:attr(data-libelle);
       font-size:.6rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
-      color:#8d8678;flex:none;padding-top:.18rem;
+      color:#8a8375;flex:none;padding-top:.18rem;
     }
-  }
-
-  .int-nav{
-    width:100%;max-width:44rem;margin:2.6rem auto 0;
-    display:flex;gap:.8rem;justify-content:space-between;
-    border-top:1px solid rgba(43,42,38,.12);padding-top:1.1rem;
-  }
-  .int-nav button,#int-sortir{
-    font:inherit;font-size:.78rem;font-weight:500;letter-spacing:.02em;
-    border:0;border-radius:10px;cursor:pointer;
-    padding:.62rem .95rem;min-height:34px;          /* au-dela du minimum de cible */
-    background:rgba(43,42,38,.06);color:#2b2a26;
-    transition:background .16s ease;
-  }
-  .int-nav button:hover,#int-sortir:hover{background:rgba(43,42,38,.13)}
-  .int-nav button[disabled]{opacity:.34;cursor:default;background:rgba(43,42,38,.05)}
-  .int-nav button:focus-visible,#int-sortir:focus-visible{
-    outline:3px solid #2b2a26;outline-offset:3px;
-  }
-  /* Un BANDEAU degrade, pas un bouton flottant seul : pose nu au-dessus
-     d'un texte qui defile, il en masquait une ligne par le milieu. Le
-     texte passe maintenant sous un fondu, ce qui se lit comme voulu. */
-  .piece-barre{
-    position:absolute;top:0;left:0;right:0;z-index:1;pointer-events:none;
-    height:clamp(3.6rem,8vh,5rem);
-    display:flex;align-items:center;justify-content:flex-end;
-    padding:0 var(--gouttiere);
-    background:linear-gradient(180deg,#fdfbf6 46%,rgba(253,251,246,0) 100%);
-  }
-  #int-sortir{pointer-events:auto;background:rgba(43,42,38,.07)}
-  #int-sortir:hover{background:rgba(43,42,38,.14)}
-
-  @media (max-width:700px){
-    /* de quoi passer sous le bouton « Ressortir », qui est fixe */
-    .piece{padding-top:4.8rem}
-    .int-nav{flex-direction:column}
-    .int-nav button{text-align:left}
   }
 
   @media (prefers-reduced-motion:reduce){
@@ -395,11 +408,11 @@
     technologies — l'IA en particulier — peuvent y répondre. J'ai déjà passé un mois à
     diagnostiquer la thermique d'un atelier en production : j'en ai rapporté qu'une idée
     écologique ne vaut que si elle tient aussi économiquement.</p>
-  <p class="invite">Cinq étages, cinq lieux — chaque fenêtre s'ouvre&nbsp;<b>↓</b></p>
+  <p class="invite">Six étages, six lieux — chaque étage s'ouvre&nbsp;<b>↓</b></p>
   <p class="contact"><a href="mailto:esteban.aba2005@gmail.com">esteban.aba2005@gmail.com</a></p>
 </section>
 
-<div id="scene"><svg id="toile" aria-label="Illustration d'un immeuble planté vu de face, du ciel jusqu'à la rue. Les fenêtres sont des boutons qui ouvrent le détail du travail."></svg></div>
+<div id="scene"><svg id="toile" aria-label="Illustration d'un immeuble planté vu de face, du ciel jusqu'à la rue. Chaque étage est un bouton qui ouvre le lieu correspondant du parcours."></svg></div>
 <div id="defilement" aria-hidden="true"></div>
 <div id="voile-bas" aria-hidden="true"></div>
 
@@ -410,6 +423,7 @@
 <div id="progression" aria-hidden="true"><i></i></div>
 
 <section id="interieur" role="dialog" aria-modal="true" aria-labelledby="int-titre" hidden>
+  <div class="piece-voile" aria-hidden="true"></div>
   <div class="piece">
     <div class="piece-texte">
       <p class="int-lieu" id="int-lieu"></p>
@@ -429,108 +443,165 @@
 <script type="module">
 /* ==================================================================
  * 0. LE CONTENU
- *    Un etage = un LIEU du parcours. On descend du plus recent
- *    (Poitiers, aujourd'hui) au plus ancien (les courts de tennis).
- *    Trois baies par etage, une carte par baie.
+ *    Un etage = un LIEU du parcours, et une seule piece. On descend du
+ *    plus recent (Poitiers, aujourd'hui) au plus ancien (les courts de
+ *    tennis). Chaque piece est faite de sections titrees.
  *    Tout le texte du site est ici : rien a chercher ailleurs.
+ *
+ *    Regle tenue partout : AUCUN nom de tiers. Les autres personnes
+ *    sont designees par leur role — un binome, deux professeurs, le
+ *    maitre de stage, le directeur.
  * ================================================================== */
-const LIEUX = [
-  'ENSIP, Poitiers',
-  'Röchling, Nancy',
-  'Complutense, Madrid',
-  'Water Watch, Nancy',
-  'Les courts, Nancy',
+const ETAGES = [
+
+  /* ---------- 0 — ENSIP, Poitiers ---------- */
+  {
+    lieu: 'ENSIP, Poitiers',
+    date: 'Depuis sept. 2025',
+    titre: 'L’ENSIP, et ce que j’y cherche',
+    sections: [
+      { h: 'La filière Énergie & Environnement', p: [
+        "École Nationale Supérieure d’Ingénieurs de Poitiers. La filière approfondit plusieurs domaines de la physique, mais toujours sous contrainte : une solution n’y est recevable que si elle tient à la fois écologiquement et économiquement.",
+        "C’est exactement l’arbitrage que j’avais rencontré en entreprise avant d’y entrer, et c’est pour ça que j’ai choisi cette filière.",
+        "En parallèle, je suis de près l’apprentissage automatique et l’apprentissage profond. Ce n’est pas une curiosité séparée : c’est de là qu’est venue la proposition de piloter les presses de Röchling par IA.",
+      ]},
+      { h: 'Parcours Éclairage, Acoustique et Thermique', p: [
+        "Trois sujets qui ont la même nature : ils décident du confort d’un lieu sans qu’on les voie. Un atelier mal éclairé, mal isolé ou trop réverbérant se subit avant de s’expliquer.",
+        "J’ai pris ce parcours pour répondre au besoin croissant de confort, en intérieur comme en extérieur — et parce que la thermique d’un bâtiment industriel est le problème sur lequel j’ai déjà eu les mains.",
+      ]},
+    ],
+  },
+
+  /* ---------- 1 — Lycée Henri Poincaré, Nancy ---------- */
+  {
+    lieu: 'Henri Poincaré, Nancy',
+    date: '2023 – 2025',
+    titre: 'Le TIPE : optimiser une hydrolienne',
+    sections: [
+      { h: 'La question', p: [
+        "En prépa, le TIPE est le seul moment où l’on choisit soi-même son sujet. En binôme, nous avons pris celui-ci : <em>comment optimiser le rendement d’une hydrolienne ?</em> Un travail à prédominance physique, encadré par deux professeurs, à cheval sur deux domaines — la mécanique des fluides pour la mise en rotation de la turbine, l’induction pour la conversion en électricité.",
+        "Nous voulions un sujet d’énergie renouvelable, et l’hydrolienne avait l’avantage d’être moins balisée que l’éolien ou le solaire.",
+      ]},
+      { h: 'Ce que nous avons lu', p: [
+        "Avant de monter quoi que ce soit, une bibliographie. <strong>Nachtane</strong> et ses coauteurs sur la caractérisation mécanique d’une hydrolienne en composite en milieu marin — pourquoi le verre-polyester, et quelles propriétés le matériau doit tenir pour survivre au fond. <strong>Magnier</strong> sur les écoulements, avec un obstacle de fond reproduisant la bathymétrie du Raz Blanchard pour générer de grandes structures tourbillonnaires. <strong>Grondeau</strong> sur la prévision de rendement en zone turbulente, par simulation en méthode de Boltzmann sur réseau. <strong>Gaurier</strong> sur les performances sous interaction houle-courant. <strong>Multon</strong> pour les énergies marines, <strong>Bornand</strong> pour les balais collecteurs et l’inversion du signe.",
+        "Et <strong>de Swaef</strong> sur le biomimétisme : l’hydrolienne doit beaucoup à l’anguille, l’éolienne à la baleine à bosse.",
+        "Ce dépouillement a servi à deux choses : comprendre ce que nous allions mesurer, et comprendre ce que nous ne pourrions pas mesurer.",
+      ]},
+      { h: 'Le banc, avec les moyens du bord', p: [
+        "Ni bassin d’essai, ni instrumentation. Une turbine entraînée par un écoulement dont nous contrôlions le débit au robinet, accouplée à une génératrice, et la mesure de l’intensité produite.",
+        "Nous avons fait varier le débit, placé un obstacle en amont des pales pour voir ce que coûte un écoulement perturbé, et regardé l’encrassement — ce que quelques millimètres de dépôt font à une pale. Ce banc ne donne pas des valeurs, il donne des tendances. C’était sa limite, et nous l’avons assumée comme telle.",
+      ]},
+      { h: 'Ce que ça a donné', p: [
+        "<strong>La vitesse décide de tout.</strong> La puissance récupérable varie comme le cube de la vitesse du courant : doubler la vitesse multiplie la puissance par huit. Sur le banc, cette montée est si brutale qu’elle écrase tout le reste. Le site compte plus que la machine.",
+        "<strong>Il existe un plafond, et il est bas.</strong> La limite de Betz interdit de prendre plus de 16/27 — environ 59 % — de l’énergie cinétique d’un courant libre, quelle que soit la turbine. La conversion mécanique-électrique fait retomber l’ensemble autour de 40 à 50 %. Le carénage et l’effet Venturi accélèrent le fluide à la traversée du rotor et constituent un vrai levier, mais ils ne font pas sauter le plafond.",
+        "<strong>Le reste se joue sur ce qui dégrade.</strong> Un obstacle en amont, un écoulement turbulent, quelques millimètres de dépôt sur les pales : chacun grignote. L’antifouling répond à l’encrassement, mais pose son propre problème — il est toxique pour le milieu qu’on prétend préserver.",
+        "<strong>La conclusion :</strong> on n’optimise pas une hydrolienne en dessinant une meilleure pale. On l’optimise en choisissant où la poser, et en acceptant un plafond physique qu’aucune ingéniosité ne franchira. Deux ans avant Röchling, c’était déjà la même leçon : la performance se décide dans l’arbitrage, pas dans l’idée.",
+      ]},
+      { h: 'Avant la prépa', p: [
+        "Baccalauréat général, mention Très Bien, lycée St Léon IX, Nancy. Spécialités mathématiques, physique-chimie et SVT, option mathématiques expertes.",
+      ]},
+    ],
+  },
+
+  /* ---------- 2 — Röchling Industrial, Nancy ---------- */
+  {
+    lieu: 'Röchling, Nancy',
+    date: 'Stage d’un mois, 2024',
+    titre: 'Décarboner un atelier en production',
+    sections: [
+      { h: 'Le diagnostic, sans instruments', p: [
+        "Röchling Industrial transforme des plastiques techniques et des composites. L’atelier devenait difficile à supporter l’été, et son inertie le rendait presque impossible à chauffer l’hiver. Ma mission : en trouver les causes.",
+        "Un mois, et aucun matériel de mesure. J’ai donc fait du terrain mon instrument : des passages réguliers dans l’atelier, à différentes heures, pour éprouver moi-même les écarts — ils étaient nets. En parallèle, le relevé du ressenti thermique poste par poste ; les témoignages convergeaient tous.",
+        "J’ai bâti un <strong>arbre des causes</strong>, d’abord au crayon, puis modélisé en Mermaid pour que l’équipe puisse le relire et le prolonger. Sa conclusion a décidé de tout le reste : il n’y avait pas <em>une</em> cause, mais une addition de petits facteurs. Mis bout à bout, ils créaient un inconfort réel, et en hauteur — là où l’air chaud s’accumule — des températures extrêmes.",
+      ]},
+      { h: 'Les solutions proposées', p: [
+        "<strong>L’enveloppe et l’air.</strong> Ventilation, isolation, puits provençal, cool roofing. Et des <em>dry coolers</em> sur les zones hautes les plus critiques — parce que les ventilateurs déjà en place brassent l’air chaud sans faire baisser la température pendant les vagues de chaleur.",
+        "<strong>L’éclairage.</strong> Des détecteurs intelligents et adaptatifs, pour moduler l’éclairement selon le besoin réel — présence ou non — au lieu d’éclairer uniformément un atelier à moitié vide.",
+        "<strong>Les presses.</strong> C’est la piste dont je suis le plus fier. Les presses chauffantes tournent en continu, y compris ouvertes et vides. J’ai proposé un pilotage thermodynamique assisté par IA qui adapte les temps de cycle : quand la presse est ouverte, on cesse de chauffer dans le vide et on la laisse redescendre naturellement, puis on commande les skids électriques pour qu’elle soit remontée en température à l’instant précis où le composite suivant entre. De l’électricité économisée, des pertes thermiques en moins dans l’atelier, et un process de fabrication inchangé.",
+      ]},
+      { h: 'L’arbitrage, puis le COMEX', p: [
+        "Une idée ne vaut rien tant qu’elle n’est pas comparable aux autres. J’ai donc construit un grand tableau Excel croisant coût d’investissement, gain énergétique et retour sur investissement, avec deux colonnes auxquelles j’ai donné un poids important : le gain financier et le gain CO₂. Les valeurs étaient des ordres de grandeur, et je les ai présentées comme tels devant la direction.",
+        { t: 'tableau',
+          entetes: ['Mesure', 'Investissement', 'Gain annuel', 'ROI'],
+          lignes: [
+            ['Détection de présence et gradation', '~ 5 k€', '~ 7 MWh · ~ 0,5 t CO₂', '< 2 ans'],
+            ['Pilotage thermodynamique des presses', '~ 25 k€', '~ 45 MWh · ~ 3 t CO₂', '~ 3 ans'],
+            ['Isolation de toiture et cool roofing', '~ 60 k€', '~ 35 MWh · ~ 7 t CO₂', '~ 8 ans'],
+            ['Dry coolers en zones hautes', '~ 45 k€', 'confort avant tout', '> 10 ans'],
+          ]},
+        { t: 'mention',
+          texte: "<strong>Ces chiffres sont fictifs.</strong> Les données réelles de Röchling Industrial sont couvertes par la confidentialité de l’entreprise et je ne peux pas les publier. Ce tableau n’est là que pour montrer la <em>forme</em> de l’arbitrage que j’ai mené : les postes comparés, les grandeurs croisées et la façon de les classer. Les ordres de grandeur sont reconstitués pour l’exemple." },
+        "Ce tableau servait à <strong>classer</strong> : par coût, par ROI — les <em>quick wins</em> d’un côté — et par apport réel à la condition des ouvriers. Il servait aussi à écarter ce qui n’était pas tenable sur un site en production.",
+        "De ma propre initiative, après lecture des chartes internes, j’y ai ajouté des mesures simples de sécurité et d’environnement adossées à l’<strong>ISO 14001</strong> et à l’<strong>ISO 45001</strong>. J’ai ensuite présenté l’ensemble en dix minutes devant le directeur et plusieurs membres du COMEX. Ils ont été satisfaits du travail, et nous avons repris ensemble les points qui les intriguaient. J’arrivais au début de leur projet : ce que j’ai laissé est un socle d’idées à développer.",
+      ]},
+    ],
+  },
+
+  /* ---------- 3 — Universidad Complutense de Madrid ---------- */
+  {
+    lieu: 'Complutense, Madrid',
+    date: 'Juillet 2024',
+    titre: 'Un mois en immersion',
+    sections: [
+      { h: 'Cours intensifs d’espagnol', p: [
+        "Un mois à la Universidad Complutense de Madrid, en cours intensifs, sanctionnés par l’examen certifié <strong>CertAcles</strong> — niveau B2 obtenu.",
+        "Apprendre une langue dans le pays et la pratiquer en cours tous les jours n’a rien à voir avec l’apprendre à distance : on arrête de traduire.",
+      ]},
+      { h: 'Quatre langues', p: [
+        "<strong>Français</strong> — langue maternelle.<br><strong>Espagnol</strong> — C1.<br><strong>Anglais</strong> — B2.<br><strong>Chinois</strong> — A1.",
+        "L’espagnol est celle que j’ai poussée le plus loin, de Madrid jusqu’au C1.",
+      ]},
+      { h: 'S’adapter ailleurs', p: [
+        "Australie, États-Unis, Canada, Europe. Je voyage pour les cultures autant que pour les paysages, et c’est ce qui a construit la capacité d’adaptation que je mets en avant : arriver dans un environnement qu’on ne connaît pas et y devenir utile vite.",
+        "C’est aussi ce qui m’a servi à Röchling, où tout mon travail a commencé par des passages dans un atelier dont je ne savais rien.",
+      ]},
+    ],
+  },
+
+  /* ---------- 4 — Objectif Sciences International, Nancy ---------- */
+  {
+    lieu: 'Water Watch, Nancy',
+    date: 'Juillet 2022',
+    titre: 'Water Watch : du terrain au laboratoire',
+    sections: [
+      { h: 'Sur le terrain', p: [
+        "Programme de recherche et d’éducation <strong>« Water Watch »</strong>, avec Objectif Sciences International, à Nancy.",
+        "Sur le cours d’eau : mesures de débits et relevés d’échantillons. Ma première expérience de la donnée qu’il faut aller chercher soi-même, avec ce que ça implique de méthode et de rigueur sur le moment — on ne refait pas un relevé raté.",
+      ]},
+      { h: 'Au laboratoire', p: [
+        "Analyse de la qualité de l’eau et calculs sur les échantillons rapportés du terrain.",
+        "C’est là que j’ai compris à quel point les deux moitiés tiennent ensemble : un calcul propre sur un prélèvement bâclé ne vaut rien, et un bon prélèvement sans analyse ne dit rien.",
+      ]},
+      { h: 'La restitution publique', p: [
+        "Présentation du compte-rendu en public, en fin de programme.",
+        "C’était mon premier exercice de synthèse devant une salle. Deux ans plus tard, j’ai retrouvé exactement la même contrainte en dix minutes devant le COMEX de Röchling : savoir ce qu’on garde, et pourquoi.",
+      ]},
+    ],
+  },
+
+  /* ---------- 5 — les courts, Nancy (rez-de-chaussee) ---------- */
+  {
+    lieu: 'Les courts, Nancy',
+    date: '2021 – 2022',
+    titre: 'Encadrer, accompagner, arbitrer',
+    sections: [
+      { h: 'Cours de tennis', p: [
+        "Encadrement de cours auprès de jeunes : organisation des séances, création d’exercices adaptés à chaque niveau et d’activités ludiques pour tenir un groupe sur la durée.",
+        "Apprendre à expliquer un geste à quelqu’un qui ne le sent pas encore, c’est la même compétence que présenter un travail technique à quelqu’un qui n’a pas suivi le dossier.",
+      ]},
+      { h: 'Fête le Mur', p: [
+        "Accompagnement de jeunes en difficulté sociale, au sein de l’association Fête le Mur, pour favoriser l’intégration sociale par le sport.",
+        "L’engagement qui compte le plus pour moi dans cette liste.",
+      ]},
+      { h: 'Championnat de France de para-tennis', p: [
+        "Arbitrage des rencontres entre participants.",
+        "Arbitrer, c’est trancher vite, à voix haute, et assumer devant deux personnes qui ne seront pas d’accord. Une bonne école pour défendre ses choix.",
+      ]},
+    ],
+  },
 ];
 
-const CARTES = {
-  /* ---------- Étage 4 — ENSIP, Poitiers, depuis sept. 2025 ---------- */
-  '0-0': { titre: 'La filière Énergie & Environnement', date: 'Depuis sept. 2025', p: [
-    "École Nationale Supérieure d’Ingénieurs de Poitiers. La filière approfondit plusieurs domaines de la physique, mais toujours sous contrainte : une solution n’y est recevable que si elle tient à la fois écologiquement et économiquement.",
-    "C’est exactement l’arbitrage que j’avais rencontré en entreprise avant d’y entrer, et c’est pour ça que j’ai choisi cette filière.",
-    "En parallèle, je suis de près l’apprentissage automatique et l’apprentissage profond. Ce n’est pas une curiosité séparée : c’est de là qu’est venue la proposition de piloter les presses de Röchling par IA.",
-  ]},
-  '0-1': { titre: 'Parcours Éclairage, Acoustique et Thermique', date: '4ᵉ année', p: [
-    "Trois sujets qui ont la même nature : ils décident du confort d’un lieu sans qu’on les voie. Un atelier mal éclairé, mal isolé ou trop réverbérant se subit avant de s’expliquer.",
-    "J’ai pris ce parcours pour répondre au besoin croissant de confort, en intérieur comme en extérieur — et parce que la thermique d’un bâtiment industriel est le problème sur lequel j’ai déjà eu les mains.",
-  ]},
-  '0-2': { titre: 'Avant Poitiers : Nancy', date: '2020 – 2025', p: [
-    "<strong>Classe préparatoire PCSI puis PC</strong>, lycée Henri Poincaré, Nancy — spécialisation physique et chimie, de 2023 à 2025.",
-    "<strong>Baccalauréat général, mention Très Bien</strong>, lycée St Léon IX, Nancy — spécialités mathématiques, physique-chimie et SVT, option mathématiques expertes.",
-  ]},
-
-  /* ---------- Étage 3 — Röchling Industrial, Nancy, 2024 ---------- */
-  '1-0': { titre: 'Le diagnostic, sans instruments', date: 'Stage d’un mois, 2024', p: [
-    "Röchling Industrial transforme des plastiques techniques et des composites. L’atelier devenait difficile à supporter l’été, et son inertie le rendait presque impossible à chauffer l’hiver. Ma mission : en trouver les causes.",
-    "Un mois, et aucun matériel de mesure. J’ai donc fait du terrain mon instrument : des passages réguliers dans l’atelier, à différentes heures, pour éprouver moi-même les écarts — ils étaient nets. En parallèle, le relevé du ressenti thermique poste par poste ; les témoignages convergeaient tous.",
-    "J’ai bâti un <strong>arbre des causes</strong>, d’abord au crayon, puis modélisé en Mermaid pour que l’équipe puisse le relire et le prolonger. Sa conclusion a décidé de tout le reste : il n’y avait pas <em>une</em> cause, mais une addition de petits facteurs. Mis bout à bout, ils créaient un inconfort réel, et en hauteur — là où l’air chaud s’accumule — des températures extrêmes.",
-  ]},
-  '1-1': { titre: 'Les solutions proposées', date: '2024', p: [
-    "<strong>L’enveloppe et l’air.</strong> Ventilation, isolation, puits provençal, cool roofing. Et des <em>dry coolers</em> sur les zones hautes les plus critiques — parce que les ventilateurs déjà en place brassent l’air chaud sans faire baisser la température pendant les vagues de chaleur.",
-    "<strong>L’éclairage.</strong> Des détecteurs intelligents et adaptatifs, pour moduler l’éclairement selon le besoin réel — présence ou non — au lieu d’éclairer uniformément un atelier à moitié vide.",
-    "<strong>Les presses.</strong> C’est la piste dont je suis le plus fier. Les presses chauffantes tournent en continu, y compris ouvertes et vides. J’ai proposé un pilotage thermodynamique assisté par IA qui adapte les temps de cycle : quand la presse est ouverte, on cesse de chauffer dans le vide et on la laisse redescendre naturellement, puis on commande les skids électriques pour qu’elle soit remontée en température à l’instant précis où le composite suivant entre. De l’électricité économisée, des pertes thermiques en moins dans l’atelier, et un process de fabrication inchangé.",
-  ]},
-  '1-2': { titre: 'L’arbitrage, puis le COMEX', date: '2024', p: [
-    "Une idée ne vaut rien tant qu’elle n’est pas comparable aux autres. J’ai donc construit un grand tableau Excel croisant coût d’investissement, gain énergétique et retour sur investissement, avec deux colonnes auxquelles j’ai donné un poids important : le gain financier et le gain CO₂. Les valeurs étaient des ordres de grandeur, et je les ai présentées comme tels devant la direction.",
-    { t: 'tableau',
-      entetes: ['Mesure', 'Investissement', 'Gain annuel', 'ROI'],
-      lignes: [
-        ['Détection de présence et gradation', '~ 5 k€', '~ 7 MWh · ~ 0,5 t CO₂', '< 2 ans'],
-        ['Pilotage thermodynamique des presses', '~ 25 k€', '~ 45 MWh · ~ 3 t CO₂', '~ 3 ans'],
-        ['Isolation de toiture et cool roofing', '~ 60 k€', '~ 35 MWh · ~ 7 t CO₂', '~ 8 ans'],
-        ['Dry coolers en zones hautes', '~ 45 k€', 'confort avant tout', '> 10 ans'],
-      ]},
-    { t: 'mention',
-      texte: "<strong>Ces chiffres sont fictifs.</strong> Les données réelles de Röchling Industrial sont couvertes par la confidentialité de l’entreprise et je ne peux pas les publier. Ce tableau n’est là que pour montrer la <em>forme</em> de l’arbitrage que j’ai mené : les postes comparés, les grandeurs croisées et la façon de les classer. Les ordres de grandeur sont reconstitués pour l’exemple." },
-    "Ce tableau servait à <strong>classer</strong> : par coût, par ROI — les <em>quick wins</em> d’un côté — et par apport réel à la condition des ouvriers. Il servait aussi à écarter ce qui n’était pas tenable sur un site en production.",
-    "De ma propre initiative, après lecture des chartes internes, j’y ai ajouté des mesures simples de sécurité et d’environnement adossées à l’<strong>ISO 14001</strong> et à l’<strong>ISO 45001</strong>. J’ai ensuite présenté l’ensemble en dix minutes devant le directeur et plusieurs membres du COMEX. Ils ont été satisfaits du travail, et nous avons repris ensemble les points qui les intriguaient. J’arrivais au début de leur projet : ce que j’ai laissé est un socle d’idées à développer.",
-  ]},
-
-  /* ---------- Étage 2 — Universidad Complutense de Madrid, juil. 2024 ---------- */
-  '2-0': { titre: 'Cours intensifs d’espagnol', date: 'Juillet 2024', p: [
-    "Un mois à la Universidad Complutense de Madrid, en cours intensifs, sanctionnés par l’examen certifié <strong>CertAcles</strong> — niveau B2 obtenu.",
-    "Apprendre une langue dans le pays et la pratiquer en cours tous les jours n’a rien à voir avec l’apprendre à distance : on arrête de traduire.",
-  ]},
-  '2-1': { titre: 'Quatre langues', date: '', p: [
-    "<strong>Français</strong> — langue maternelle.<br><strong>Espagnol</strong> — C1.<br><strong>Anglais</strong> — B2.<br><strong>Chinois</strong> — A1.",
-    "L’espagnol est celle que j’ai poussée le plus loin, de Madrid jusqu’au C1.",
-  ]},
-  '2-2': { titre: 'S’adapter ailleurs', date: '', p: [
-    "Australie, États-Unis, Canada, Europe. Je voyage pour les cultures autant que pour les paysages, et c’est ce qui a construit la capacité d’adaptation que je mets en avant : arriver dans un environnement qu’on ne connaît pas et y devenir utile vite.",
-    "C’est aussi ce qui m’a servi à Röchling, où tout mon travail a commencé par des passages dans un atelier dont je ne savais rien.",
-  ]},
-
-  /* ---------- Étage 1 — Objectif Sciences International, Nancy, juil. 2022 ---------- */
-  '3-0': { titre: 'Sur le terrain', date: 'Juillet 2022', p: [
-    "Programme de recherche et d’éducation <strong>« Water Watch »</strong>, avec Objectif Sciences International, à Nancy.",
-    "Sur le cours d’eau : mesures de débits et relevés d’échantillons. Ma première expérience de la donnée qu’il faut aller chercher soi-même, avec ce que ça implique de méthode et de rigueur sur le moment — on ne refait pas un relevé raté.",
-  ]},
-  '3-1': { titre: 'Au laboratoire', date: 'Juillet 2022', p: [
-    "Analyse de la qualité de l’eau et calculs sur les échantillons rapportés du terrain.",
-    "C’est là que j’ai compris à quel point les deux moitiés tiennent ensemble : un calcul propre sur un prélèvement bâclé ne vaut rien, et un bon prélèvement sans analyse ne dit rien.",
-  ]},
-  '3-2': { titre: 'La restitution publique', date: 'Juillet 2022', p: [
-    "Présentation du compte-rendu en public, en fin de programme.",
-    "À quinze ans, c’était mon premier exercice de synthèse devant une salle. Deux ans plus tard, j’ai retrouvé exactement la même contrainte en dix minutes devant le COMEX de Röchling : savoir ce qu’on garde, et pourquoi.",
-  ]},
-
-  /* ---------- Rez-de-chaussée — les courts, Nancy ---------- */
-  '4-0': { titre: 'Cours de tennis', date: '2022', p: [
-    "Encadrement de cours auprès de jeunes : organisation des séances, création d’exercices adaptés à chaque niveau et d’activités ludiques pour tenir un groupe sur la durée.",
-    "Apprendre à expliquer un geste à quelqu’un qui ne le sent pas encore, c’est la même compétence que présenter un travail technique à quelqu’un qui n’a pas suivi le dossier.",
-  ]},
-  '4-1': { titre: 'Fête le Mur', date: 'Juin 2021', p: [
-    "Accompagnement de jeunes en difficulté sociale, au sein de l’association Fête le Mur, pour favoriser l’intégration sociale par le sport.",
-    "L’engagement qui compte le plus pour moi dans cette liste.",
-  ]},
-  '4-2': { titre: 'Championnat de France de para-tennis', date: '2022', p: [
-    "Arbitrage des rencontres entre participants.",
-    "Arbitrer, c’est trancher vite, à voix haute, et assumer devant deux personnes qui ne seront pas d’accord. Une bonne école pour défendre ses choix.",
-  ]},
-};
-
-const SITE = {
-  courriel: 'esteban.aba2005@gmail.com',
-};
+const LIEUX = ETAGES.map(e => e.lieu);
 
 /* ==================================================================
  * 1. PALETTE
@@ -650,13 +721,25 @@ function massif(parent, cx, cy, larg, haut, opt = {}) {
         ? (opt.xmin + opt.xmax) / 2
         : Math.min(Math.max(lx, opt.xmin + r), opt.xmax - r))
     : lx => lx;
-  const couches = [
+  const esp = opt.espece || 'buis';
+  let couches = [
     { col: C.v1, n: 7, dx:  .10, dy:  .26, r: [.15, .26] },
     { col: C.v2, n: 8, dx:  .16, dy:  .08, r: [.14, .24] },
     { col: C.v3, n: 9, dx: -.02, dy: -.04, r: [.13, .23] },
     { col: C.v4, n: 7, dx: -.16, dy: -.18, r: [.11, .19] },
     { col: C.v5, n: 5, dx: -.24, dy: -.28, r: [.08, .15] },
   ];
+  if (esp === 'conifere') {
+    /* plus sombre, plus serre, plus haut que large */
+    couches = couches.map(c => ({ ...c, r: [c.r[0] * .72, c.r[1] * .80] }));
+    couches.unshift({ col: '#2f4c26', n: 8, dx: .06, dy: .24, r: [.13, .22] });
+  } else if (esp === 'retombant') {
+    /* plus etale, moins haut */
+    couches = couches.map(c => ({ ...c, dy: c.dy * .62, r: [c.r[0] * .92, c.r[1] * 1.08] }));
+  } else if (esp === 'graminee') {
+    /* une base basse : l'essentiel se joue dans les brins, ajoutes apres */
+    couches = couches.slice(0, 3).map(c => ({ ...c, n: Math.round(c.n * .6), dy: c.dy + .22 }));
+  }
   if (opt.clair) couches.push({ col: C.v6, n: 4, dx: -.28, dy: -.34, r: [.06, .11] });
   for (const c of couches) {
     const n = Math.max(2, Math.round(c.n * dens));
@@ -665,7 +748,33 @@ function massif(parent, cx, cy, larg, haut, opt = {}) {
       ell(m,
         bx(cx + (c.dx + rr(-.34, .34)) * larg * .5, r),
         cy + (c.dy + rr(-.16, .16)) * haut * .5,
-        r, r * rr(.80, 1.0), c.col);
+        r, r * rr(.80, 1.0) * (esp === 'conifere' ? 1.22 : 1), c.col);
+    }
+  }
+
+  /* ce qui distingue vraiment une espece d'une autre */
+  if (esp === 'graminee') {
+    for (let i = 0; i < Math.round(9 * dens); i++) {
+      const bxx = cx + rr(-.42, .42) * larg, h = haut * rr(.58, 1.02);
+      const dx = rr(-18, 18);
+      el(m, 'path', {
+        d: `M${n1(bxx - 2.2)} ${n1(cy + haut * .34)} `
+         + `Q${n1(bxx + dx * .35)} ${n1(cy + haut * .34 - h * .62)} ${n1(bxx + dx)} ${n1(cy + haut * .34 - h)} `
+         + `Q${n1(bxx + dx * .35 + 2.6)} ${n1(cy + haut * .34 - h * .62)} ${n1(bxx + 2.2)} ${n1(cy + haut * .34)} Z`,
+        fill: rnd() < .45 ? C.v3 : C.v5,
+      });
+    }
+  } else if (esp === 'fleuri') {
+    for (let i = 0; i < Math.round(11 * dens); i++) {
+      ell(m, cx + rr(-.46, .46) * larg, cy + rr(-.52, .30) * haut,
+          rr(3.4, 5.6), rr(3.4, 5.6),
+          choix(['#f6f0e2', '#f3cdd4', '#efdca6']));
+    }
+  } else if (esp === 'conifere') {
+    for (let i = 0; i < Math.round(5 * dens); i++) {
+      const bxx = cx + rr(-.34, .34) * larg, h = haut * rr(.42, .68);
+      poly(m, [[bxx, cy - haut * .34 - h], [bxx + rr(7, 12), cy - haut * .34],
+               [bxx - rr(7, 12), cy - haut * .34]], '#3a5a2c');
     }
   }
   return m;
@@ -763,8 +872,9 @@ function bandePlantee(parent, x, larg, y, opt = {}) {
     for (let mx = gx - 4; mx < gx + gw + 4; mx += 38 * rr(.8, 1.2)) {
       const h = hG * rr(.76, 1.2);
       massif(b, mx, y + 4 - h * .47, h * rr(1.35, 1.75), h,
-             { dens: dense ? 1.2 : 1.05, clair: rnd() < .55, xmin: x, xmax: x + larg });
-      if (rnd() < .26) touffe(b, mx + rr(-16, 16), y - 18, hG * rr(.4, .66));
+             { dens: dense ? 1.2 : 1.05, clair: rnd() < .55, espece: opt.espece,
+               xmin: x, xmax: x + larg });
+      if (opt.espece !== 'graminee' && rnd() < .26) touffe(b, mx + rr(-16, 16), y - 18, hG * rr(.4, .66));
     }
 
     /* 3. ce qui passe par-dessus le bord, sous ce groupe seulement.
@@ -799,12 +909,17 @@ const LARG = 620;        /* largeur de la facade               */
 const OVER = 24;         /* debord des dalles de chaque cote   */
 const DALLE = 27;        /* epaisseur du bandeau saumon        */
 const H = 214;           /* hauteur d'un etage                 */
-const NIVEAUX = 4;       /* quatre etages, plus le rez         */
+const NIVEAUX = 5;       /* cinq etages, plus le rez           */
 const RDC_H = 238;
 const TOIT_H = 162;      /* le volume en attique, sur le toit  */
-const BAIES = 3;         /* baies cliquables par etage         */
+const BAIES = 3;         /* baies dessinees par etage          */
 const MENEAU = 7;        /* ecart entre panneaux ET entre baies */
 const BAT_H = TOIT_H + NIVEAUX * H + RDC_H;   /* hauteur batie totale */
+
+/* Une espece dominante par etage. Une seule masse verte repetee six
+   fois donnait un immeuble planté de la même chose du sol au toit ;
+   chaque niveau a maintenant son caractere. */
+const ESPECES = ['graminee', 'conifere', 'buis', 'fleuri', 'retombant', 'buis'];
 
 function gabarit() {
   const ratio = innerWidth / innerHeight;
@@ -826,17 +941,13 @@ function gabarit() {
 }
 
 /* ==================================================================
- * 5. UNE BAIE
- *    C'est la future cible des boutons : un groupe nomme par son etage
- *    et son rang, avec un cadre clair visible au repos pour qu'on
- *    devine la zone, et un halo qui s'allume au survol.
+ * 5. UNE BAIE — du DESSIN, plus un bouton
+ *    Les trois baies d'un etage ne sont plus trois cibles : elles sont
+ *    couvertes par une seule zone cliquable a l'echelle de l'etage
+ *    (voir boutonEtage). Leur dessin, lui, ne change pas.
  * ================================================================== */
-function baie(parent, i, k, x, y, w, h, Y) {
-  const b = g(parent, { class: 'baie', id: `baie-${i}-${k}`,
-                        'data-etage': i, 'data-travee': k,
-                        /* le centre de la baie dans le monde : c'est la
-                           cible de la camera quand on entre dedans */
-                        'data-cx': n1(x + w / 2), 'data-cy': n1(Y + y + h / 2) });
+function baie(parent, i, k, x, y, w, h) {
+  const b = g(parent, { class: 'baie' });
 
   /* les panneaux vitres, separes par des meneaux. L'ecart est le meme
      entre deux baies qu'entre deux panneaux : d'un bout a l'autre de
@@ -849,6 +960,11 @@ function baie(parent, i, k, x, y, w, h, Y) {
     const d = rnd();
     const fond = d < .10 ? C.vitrePale : d < .26 ? C.vitreClair : d < .60 ? C.vitreB : C.vitre;
     rect(b, px, y, pw, h, fond);
+    /* le verre n'est pas un aplat : il s'assombrit vers le bas, ou il
+       ne reflete plus le ciel mais la rue */
+    rect(b, px, y + h * .52, pw, h * .48, C.facadeOmbre, { op: .22 });
+    /* l'arete haute du cadre, qui accroche la lumiere */
+    rect(b, px, y, pw, 1.6, '#e9f0f2', { op: .22 });
     /* le reflet du ciel : une bande oblique en haut du panneau, assez
        rare pour rester un accent et non un voile general */
     if (d < .34) {
@@ -859,24 +975,45 @@ function baie(parent, i, k, x, y, w, h, Y) {
     rect(b, px, y + h - h * .17, pw, 2.4, C.facadeHaut, { op: .8 });
   }
 
-  /* l'allege : visible au repos, c'est le repere de la zone cliquable */
+  return b;
+}
+
+/* ==================================================================
+ * 5 bis. LE BOUTON D'ETAGE
+ *    Une seule cible par etage, qui couvre tout le mur-rideau — les
+ *    trois baies ET leurs intervalles. Quinze clics pour quinze bouts
+ *    d'une meme histoire decoupaient ce qui va ensemble ; un etage,
+ *    un lieu, un clic.
+ *    L'allege court donc sur toute la largeur : laissee sous chaque
+ *    baie, elle aurait decoupe en trois ce qui est devenu un bouton.
+ * ================================================================== */
+function boutonEtage(parent, i, x, y, w, h, Y) {
+  const b = g(parent, { class: 'bouton-etage', id: `etage-${i}`,
+                        'data-etage': i,
+                        /* le centre du mur-rideau dans le monde : c'est
+                           la cible de la camera quand on entre */
+                        'data-cx': n1(x + w / 2), 'data-cy': n1(Y + y + h / 2) });
+
+  /* la surface sensible, transparente : c'est elle qui recoit le
+     pointeur, par-dessus le vitrage comme par-dessus les meneaux */
+  rect(b, x, y, w, h, 'transparent', { class: 'cible' });
+  /* l'allege, d'un bout a l'autre de l'etage : le repere au repos */
   rect(b, x, y + h - 5, w, 5, '#dcc9a6', { class: 'allege', op: .4 });
-  /* le cadre : invisible au repos, franc au survol */
-  el(b, 'rect', { class: 'cadre', x: n1(x - 4), y: n1(y - 4),
-                  width: n1(w + 8), height: n1(h + 8), rx: 2,
+  /* le cadre, invisible au repos, franc au survol */
+  el(b, 'rect', { class: 'cadre', x: n1(x - 5), y: n1(y - 5),
+                  width: n1(w + 10), height: n1(h + 10), rx: 3,
                   fill: 'none', 'stroke-width': 2 });
-  /* le vitrage qui s'eclaircit au survol */
-  /* teinte CHAUDE : un blanc casse pose sur du verre sombre vire au
-     gris et la baie survolee se depolissait au lieu de s'allumer */
+  /* le vitrage qui s'allume : teinte CHAUDE, car un blanc casse pose
+     sur du verre sombre vire au gris et depolit au lieu d'allumer */
   rect(b, x, y, w, h, '#f7dfae', { class: 'vitrage', op: 0 });
-  /* Le halo, invisible au repos. DEUX TONS : un cerne sombre double
-     d'un cerne creme. Un seul ton ne peut pas tenir le contraste exige
-     pour un indicateur de focus a la fois sur un panneau de verre
-     sombre et sur un panneau pale — les deux coexistent sur la facade. */
+  /* Le halo. DEUX TONS : un cerne sombre double d'un cerne creme. Un
+     seul ton ne peut pas tenir le contraste exige pour un indicateur
+     de focus a la fois sur un panneau de verre sombre et sur un
+     panneau pale — les deux coexistent sur la meme facade. */
   const halo = g(b, { class: 'halo' });
-  for (const [col, ep, d] of [['#2b3138', 7, 12], ['#f6e7c8', 3, 12]]) {
-    el(halo, 'rect', { x: n1(x - d), y: n1(y - d),
-                       width: n1(w + d * 2), height: n1(h + d * 2), rx: 6,
+  for (const [col, ep] of [['#2b3138', 7], ['#f6e7c8', 3]]) {
+    el(halo, 'rect', { x: n1(x - 13), y: n1(y - 13),
+                       width: n1(w + 26), height: n1(h + 26), rx: 7,
                        fill: 'none', stroke: col, 'stroke-width': ep });
   }
   return b;
@@ -907,13 +1044,14 @@ function etage(parent, i, G, Y, opt = {}) {
   /* l'ombre que la dalle porte sur la facade */
   rect(n, x0, DALLE, LARG, 10, C.facadeOmbre, { op: .55 });
 
-  /* --- 2. les baies --- */
+  /* --- 2. les baies, puis LE bouton qui les couvre toutes --- */
   const marge = 24, ecart = MENEAU;
   const bw = (LARG - marge * 2 - ecart * (BAIES - 1)) / BAIES;
   const by = DALLE + 22, bh = haut - DALLE - 44;
   for (let k = 0; k < BAIES; k++) {
-    baie(n, i, k, x0 + marge + k * (bw + ecart), by, bw, bh, Y);
+    baie(n, i, k, x0 + marge + k * (bw + ecart), by, bw, bh);
   }
+  boutonEtage(n, i, x0 + marge, by, LARG - marge * 2, bh, Y);
 
   /* --- 3. la dalle --- */
   rect(n, x0 - OVER, 0, LARG + OVER * 2, DALLE, C.dalle);
@@ -926,7 +1064,8 @@ function etage(parent, i, G, Y, opt = {}) {
      posait ici l'ancienne version flottait a cinquante unites au-dessus
      de la dalle, sans bac ni rien dessous. C'est la variation de
      stature des groupes qui casse la ligne, pas une masse en l'air. */
-  bandePlantee(v, x0 - OVER + 4, LARG + OVER * 2 - 8, 0, { dense: opt.dense });
+  bandePlantee(v, x0 - OVER + 4, LARG + OVER * 2 - 8, 0,
+               { dense: opt.dense, espece: ESPECES[i] || 'buis' });
   return n;
 }
 
@@ -1158,7 +1297,7 @@ let vue = construire();
 let camY = null, cible = 0;
 /* La camera : 1 au repos, K une fois entre dans une baie. On interpole
    vers la cible image par image, comme pour le defilement. */
-const K_DEDANS = 3.4;
+const K_DEDANS = 2.1;   /* on cadre un etage, pas une seule baie */
 let zK = 1, zX = null, zY = null;
 let zKc = 1, zXc = null, zYc = null;
 
@@ -1229,11 +1368,11 @@ addEventListener('resize', () => {
   minuteur = setTimeout(() => {
     if (Math.abs(innerWidth - largeurCourante) > 2 || Math.abs(innerHeight - hauteurCourante) > 2) {
       largeurCourante = innerWidth; hauteurCourante = innerHeight;
-      sortir(false);               /* la baie ouverte va etre detruite */
+      sortir(false);               /* l'etage ouvert va etre detruit */
       vue = construire();
       zXc = zX = vue.cx; zYc = zY = vue.cy; zKc = zK = 1;
       niveauxDom = [...document.querySelectorAll('.niveau')];
-      brancherBaies();
+      brancherEtages();
     }
     lireDefilement();
   }, 170);
@@ -1241,11 +1380,109 @@ addEventListener('resize', () => {
 addEventListener('scroll', lireDefilement, { passive: true });
 
 /* ==================================================================
- * 9. ENTRER DANS UNE BAIE
- *    Cliquer sur une fenetre ne pose pas un panneau a cote du
- *    batiment : la camera plonge dans la baie et le calque de la
- *    piece prend la place. On est dedans, pas a cote.
- *    Comme ce calque couvre tout l'ecran, c'est un dialogue modal :
+ * 8 bis. LA PIECE, DESSINEE
+ *    Le seul endroit du site qui n'etait pas dessine : un aplat chaud
+ *    derriere le texte. On dessine maintenant le lieu ou l'on vient
+ *    d'entrer — on est DANS l'etage, face au mur-rideau : le ciel, la
+ *    ville au loin, les meneaux, l'allege saumon et ses plantations,
+ *    le sol. Un voile chaud passe par-dessus : sans lui le texte
+ *    traverse le ciel pale, l'allege saumon puis le sol, et le
+ *    contraste s'effondre quelque part en route.
+ * ================================================================== */
+const PIECE_W = 1200, PIECE_H = 760;
+/* L'allege est basse et la plantation courte : montees au milieu du
+   cadre, les masses vertes traversaient les paragraphes de part en
+   part. La piece se lit en trois bandes — le ciel, l'allege plantee,
+   le sol — et le texte passe devant le ciel. */
+const SILL = 566, SOL_P = 604;      /* haut et bas de l'allege */
+
+function dessinerPiece(i) {
+  /* RNG local : utiliser celui du batiment ferait deriver le dessin de
+     la facade a chaque fois qu'on entre dans une piece */
+  const garde = rnd;
+  rnd = mulberry32(0x9E00 + i * 97);
+
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('class', 'piece-fond');
+  svg.setAttribute('viewBox', `0 0 ${PIECE_W} ${PIECE_H}`);
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+  svg.setAttribute('aria-hidden', 'true');
+
+  const defs = el(svg, 'defs', {});
+  const dg = (id, a, b) => {
+    const lg = el(defs, 'linearGradient', { id, x1: 0, y1: 0, x2: 0, y2: 1 });
+    el(lg, 'stop', { offset: '0%', 'stop-color': a });
+    el(lg, 'stop', { offset: '100%', 'stop-color': b });
+  };
+  dg(`p-ciel-${i}`, '#dbe9ef', '#f2efe4');
+  dg(`p-sol-${i}`, '#efe6d4', '#ddd0b9');
+
+  /* --- 1. le ciel, vu a travers le vitrage --- */
+  rect(svg, 0, 0, PIECE_W, SILL, `url(#p-ciel-${i})`);
+
+  /* --- 2. la ville au loin, tres pale : elle donne la profondeur sans
+            jamais concurrencer le texte --- */
+  let tx = -40;
+  while (tx < PIECE_W + 40) {
+    const w = rr(46, 122), h = rr(62, 215);
+    rect(svg, tx, SILL - h, w, h, rnd() < .5 ? '#c7daE3' : '#b9cfda', { op: .72 });
+    tx += w + rr(-10, 34);
+  }
+  rect(svg, 0, SILL - 120, PIECE_W, 120, '#e9f1f3', { op: .46 });
+
+  /* --- 3. les meneaux : la trame de la facade, assez pale pour qu'un
+            paragraphe passe devant --- */
+  for (let k = 1; k < 9; k++) {
+    rect(svg, k * (PIECE_W / 9) - 2.5, 0, 5, SILL, C.facade, { op: .085 });
+  }
+  rect(svg, 0, 150, PIECE_W, 4, C.facade, { op: .07 });
+
+  /* --- 4. l'allege saumon : c'est elle qui noue la piece a la facade --- */
+  rect(svg, 0, SILL, PIECE_W, SOL_P - SILL, C.dalle);
+  rect(svg, 0, SILL, PIECE_W, 7, C.dalleHaut);
+  rect(svg, 0, SOL_P - 7, PIECE_W, 7, C.dalleOmbre);
+
+  /* --- 5. le sol, et l'ombre que l'allege y porte --- */
+  rect(svg, 0, SOL_P, PIECE_W, PIECE_H - SOL_P, `url(#p-sol-${i})`);
+  rect(svg, 0, SOL_P, PIECE_W, 28, '#c9bb9f', { op: .45 });
+
+  /* --- 6. les plantations de l'allege, dans l'espece de l'etage --- */
+  const esp = ESPECES[i] || 'buis';
+  for (let k = 0; k < 5; k++) {
+    const gw = rr(118, 190), gx = k * (PIECE_W / 5) + rr(-20, 36);
+    rect(svg, gx, SILL - 22, gw, 22, C.bac);
+    rect(svg, gx, SILL - 22, gw, 4, C.bacHaut);
+    for (let m = gx; m < gx + gw; m += 38 * rr(.8, 1.2)) {
+      const h = rr(44, 82);
+      massif(svg, m, SILL - 18 - h * .47, h * 1.45, h,
+             { dens: 1, clair: rnd() < .5, espece: esp });
+    }
+    for (let r = 0; r < ri(1, 2); r++) retombee(svg, gx + rr(12, gw - 12), SOL_P - 6, rr(20, 44));
+  }
+
+  /* --- 7. le tableau de l'embrasure : plafond et retours lateraux --- */
+  rect(svg, 0, 0, PIECE_W, 42, '#eee3cf');
+  rect(svg, 0, 42, PIECE_W, 10, '#d6c6ab', { op: .66 });
+  for (const rx of [0, PIECE_W - 40]) {
+    rect(svg, rx, 0, 40, PIECE_H, '#f1e8d7');
+    rect(svg, rx === 0 ? 40 : PIECE_W - 47, 0, 7, PIECE_H, '#dbcbb1', { op: .42 });
+  }
+
+  /* --- 8. le voile, qui garantit la lisibilite du texte --- */
+  rect(svg, 0, 0, PIECE_W, PIECE_H, '#fdfaf4', { op: .26 });
+
+  rnd = garde;
+  return svg;
+}
+
+/* ==================================================================
+ * 9. ENTRER DANS UN ETAGE
+ *    Cliquer sur le mur-rideau ne pose pas un panneau a cote du
+ *    batiment : la camera plonge dans l'etage et la piece prend la
+ *    place. On est dedans, pas a cote.
+ *    Une cible par etage, pas trois : quinze clics pour quinze bouts
+ *    d'une meme histoire decoupaient ce qui va ensemble.
+ *    Comme la piece couvre tout l'ecran, c'est un dialogue modal :
  *    focus piege a l'interieur, fond rendu inerte, Echap pour sortir.
  * ================================================================== */
 const interieur = document.getElementById('interieur');
@@ -1255,70 +1492,25 @@ const intCorps = document.getElementById('int-corps');
 const btnPrec = document.getElementById('int-prec');
 const btnSuiv = document.getElementById('int-suiv');
 const toile = document.getElementById('toile');
-const CLES = Object.keys(CARTES);
 const inertes = ['entete', 'scene', 'presentation', 'indice', 'compteur', 'progression']
   .map(id => document.getElementById(id)).filter(Boolean);
 
-let baieOuverte = null, defilementGele = 0;
+let etageOuvert = null, defilementGele = 0;
 
-function brancherBaies() {
-  for (const b of document.querySelectorAll('.baie')) {
-    const cle = `${b.dataset.etage}-${b.dataset.travee}`;
-    const c = CARTES[cle];
-    if (!c) { b.classList.remove('cliquable'); continue; }
-    b.dataset.cle = cle;
+function brancherEtages() {
+  for (const b of document.querySelectorAll('.bouton-etage')) {
+    const e = ETAGES[+b.dataset.etage];
+    if (!e) { b.classList.remove('cliquable'); continue; }
     b.classList.add('cliquable');
     b.setAttribute('role', 'button');
     b.setAttribute('tabindex', '0');
     b.setAttribute('aria-expanded', 'false');
-    b.setAttribute('aria-label', `Entrer : ${LIEUX[b.dataset.etage]}, ${c.titre}`);
+    b.setAttribute('aria-label', `Entrer : ${e.lieu}, ${e.titre}`);
   }
 }
 
-function entrer(b) {
-  const c = CARTES[b.dataset.cle];
-  if (!c) return;
-
-  if (baieOuverte && baieOuverte !== b) {
-    baieOuverte.classList.remove('ouverte');
-    baieOuverte.setAttribute('aria-expanded', 'false');
-  }
-  const premiereEntree = !baieOuverte;
-  baieOuverte = b;
-  b.classList.add('ouverte');
-  b.setAttribute('aria-expanded', 'true');
-
-  /* On fige le defilement : sans cela la baie visee continue de monter
-     pendant que la camera plonge dessus, et le cadrage derape. */
-  if (premiereEntree) {
-    camY = cible;
-    defilementGele = scrollY;
-    document.body.style.overflow = 'hidden';
-    for (const el of inertes) el.setAttribute('inert', '');
-  }
-
-  /* la cible de la camera : le centre de la baie, dans l'espace du
-     groupe camera — donc la position monde moins le defilement */
-  zKc = K_DEDANS;
-  zXc = +b.dataset.cx;
-  zYc = +b.dataset.cy - camY;
-
-  intLieu.textContent = c.date ? `${LIEUX[b.dataset.etage]} · ${c.date}` : LIEUX[b.dataset.etage];
-  intTitre.textContent = c.titre;
-  intCorps.replaceChildren(...c.p.map(bloc));
-  const i = CLES.indexOf(b.dataset.cle);
-  btnPrec.disabled = i <= 0;
-  btnSuiv.disabled = i >= CLES.length - 1;
-
-  interieur.hidden = false;
-  void interieur.offsetWidth;
-  interieur.classList.add('dedans');
-  document.querySelector('.piece').scrollTop = 0;
-  intTitre.focus({ preventScroll: true });
-}
-
-/* Un bloc de carte est soit un paragraphe (une simple chaine), soit un
-   objet type : un tableau de chiffres, ou une mention a part. */
+/* Un bloc de section est soit un paragraphe (une simple chaine), soit
+   un objet type : un tableau de chiffres, ou une mention a part. */
 function bloc(b) {
   if (typeof b === 'string') {
     const el = document.createElement('p');
@@ -1363,10 +1555,69 @@ function bloc(b) {
   return document.createTextNode('');
 }
 
+/* une section : un <h3> et ses blocs. La hierarchie reste sequentielle
+   — h1 dans le ciel, h2 le lieu, h3 les sections. */
+function section(sec) {
+  const art = document.createElement('section');
+  art.className = 'section-piece';
+  const h = document.createElement('h3');
+  h.textContent = sec.h;
+  art.appendChild(h);
+  for (const b of sec.p) art.appendChild(bloc(b));
+  return art;
+}
+
+function entrer(b) {
+  const e = ETAGES[+b.dataset.etage];
+  if (!e) return;
+
+  if (etageOuvert && etageOuvert !== b) {
+    etageOuvert.classList.remove('ouverte');
+    etageOuvert.setAttribute('aria-expanded', 'false');
+  }
+  const premiereEntree = !etageOuvert;
+  etageOuvert = b;
+  b.classList.add('ouverte');
+  b.setAttribute('aria-expanded', 'true');
+
+  /* On fige le defilement : sans cela l'etage vise continue de monter
+     pendant que la camera plonge dessus, et le cadrage derape. */
+  if (premiereEntree) {
+    camY = cible;
+    defilementGele = scrollY;
+    document.body.style.overflow = 'hidden';
+    for (const el of inertes) el.setAttribute('inert', '');
+  }
+
+  /* la cible de la camera : le centre du mur-rideau, dans l'espace du
+     groupe camera — donc la position monde moins le defilement */
+  zKc = K_DEDANS;
+  zXc = +b.dataset.cx;
+  zYc = +b.dataset.cy - camY;
+
+  intLieu.textContent = `${e.lieu} · ${e.date}`;
+  intTitre.textContent = e.titre;
+  intCorps.replaceChildren(...e.sections.map(section));
+
+  const i = +b.dataset.etage;
+  btnPrec.disabled = i <= 0;
+  btnSuiv.disabled = i >= ETAGES.length - 1;
+
+  const fond = interieur.querySelector('.piece-fond');
+  if (fond) fond.remove();
+  interieur.prepend(dessinerPiece(i));
+
+  interieur.hidden = false;
+  void interieur.offsetWidth;
+  interieur.classList.add('dedans');
+  document.querySelector('.piece').scrollTop = 0;
+  intTitre.focus({ preventScroll: true });
+}
+
 function sortir(rendreLeFocus = true) {
-  if (!baieOuverte) return;
-  const b = baieOuverte;
-  baieOuverte = null;
+  if (!etageOuvert) return;
+  const b = etageOuvert;
+  etageOuvert = null;
   b.classList.remove('ouverte');
   b.setAttribute('aria-expanded', 'false');
   interieur.classList.remove('dedans');
@@ -1374,26 +1625,26 @@ function sortir(rendreLeFocus = true) {
   for (const el of inertes) el.removeAttribute('inert');
   document.body.style.overflow = '';
   scrollTo(0, defilementGele);
-  const finir = () => { if (!baieOuverte) interieur.hidden = true; };
+  const finir = () => { if (!etageOuvert) interieur.hidden = true; };
   reduit ? finir() : setTimeout(finir, 340);
   if (rendreLeFocus) b.focus({ preventScroll: true });
 }
 
 function voisine(pas) {
-  if (!baieOuverte) return;
-  const i = CLES.indexOf(baieOuverte.dataset.cle) + pas;
-  if (i < 0 || i >= CLES.length) return;
-  const suiv = document.getElementById('baie-' + CLES[i]);
+  if (!etageOuvert) return;
+  const i = +etageOuvert.dataset.etage + pas;
+  if (i < 0 || i >= ETAGES.length) return;
+  const suiv = document.getElementById('etage-' + i);
   if (suiv) entrer(suiv);
 }
 
 toile.addEventListener('click', e => {
-  const b = e.target.closest('.baie.cliquable');
+  const b = e.target.closest('.bouton-etage.cliquable');
   if (b) entrer(b);
 });
 toile.addEventListener('keydown', e => {
   if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
-  const b = e.target.closest('.baie.cliquable');
+  const b = e.target.closest('.bouton-etage.cliquable');
   if (!b) return;
   e.preventDefault();                /* sinon l'espace fait defiler */
   entrer(b);
@@ -1403,12 +1654,12 @@ btnPrec.addEventListener('click', () => voisine(-1));
 btnSuiv.addEventListener('click', () => voisine(1));
 
 addEventListener('keydown', e => {
-  if (!baieOuverte) return;
+  if (!etageOuvert) return;
   if (e.key === 'Escape') { sortir(); return; }
   if (e.key === 'ArrowLeft') { voisine(-1); return; }
   if (e.key === 'ArrowRight') { voisine(1); return; }
   if (e.key !== 'Tab') return;
-  /* piege a focus : le calque couvre tout, rien derriere ne doit etre
+  /* piege a focus : la piece couvre tout, rien derriere ne doit etre
      atteignable au clavier */
   const f = [...interieur.querySelectorAll('button:not([disabled]), [href]')];
   if (!f.length) return;
@@ -1420,16 +1671,16 @@ addEventListener('keydown', e => {
   }
 });
 
-brancherBaies();
+brancherEtages();
 
 window.immeuble = {
-  brancherBaies, entrer, sortir, voisine,
-  get baies() { return [...document.querySelectorAll('.baie')]; },
-  get cliquables() { return [...document.querySelectorAll('.baie.cliquable')]; },
-  get dedans() { return !!baieOuverte; },
+  brancherEtages, entrer, sortir, voisine,
+  get etages() { return [...document.querySelectorAll('.bouton-etage')]; },
+  get cliquables() { return [...document.querySelectorAll('.bouton-etage.cliquable')]; },
+  get dedans() { return !!etageOuvert; },
   get camY() { return camY; },
   get zoom() { return zK; },
-  CARTES, LIEUX, MONDE_H, NIVEAUX, H,
+  ETAGES, LIEUX, MONDE_H, NIVEAUX, H,
 };
 
 const style = document.createElement('style');
