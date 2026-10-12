@@ -706,102 +706,126 @@ const ell = (p, cx, cy, rx, ry, fill, o = {}) => el(p, 'ellipse', {
  *    soit jamais plate.
  * ================================================================== */
 
-/* un massif : un amas de petits lobes ronds, sombres en bas a droite,
-   clairs en haut a gauche. Beaucoup de petits lobes plutot que peu de
-   gros — c'est ce qui donne la texture de feuillage de la reference. */
+/* Une SILHOUETTE LOBEE : le contour d'une masse de feuillage, trace
+   d'un seul chemin dont chaque segment est un arc bombe vers
+   l'exterieur. C'est ce qui fait la difference entre un dessin et un
+   tas de ronds — une pile de cercles empiles donne des bords mous et
+   des recouvrements visibles, un contour lobe donne une masse franche
+   avec de vraies decoupes de feuilles. */
+function lobes(cx, cy, rx, ry, n, irr) {
+  const pts = [];
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2 - Math.PI / 2;
+    const k = 1 + (rnd() - .5) * irr;
+    pts.push([cx + Math.cos(a) * rx * k, cy + Math.sin(a) * ry * k]);
+  }
+  let d = `M${n1(pts[0][0])} ${n1(pts[0][1])}`;
+  for (let i = 0; i < n; i++) {
+    const q = pts[(i + 1) % n], p = pts[i];
+    const r = Math.hypot(q[0] - p[0], q[1] - p[1]) * .66;
+    d += ` A${n1(r)} ${n1(r)} 0 0 1 ${n1(q[0])} ${n1(q[1])}`;
+  }
+  return d + ' Z';
+}
+
+/* un massif : trois silhouettes lobees superposees et decalees, de la
+   plus sombre a la plus claire. La lumiere vient toujours du meme cote
+   — en haut a gauche — sinon les masses ne se lisent pas ensemble. */
 function massif(parent, cx, cy, larg, haut, opt = {}) {
   const m = g(parent, {});
-  const dens = opt.dens ?? 1;
-  /* Bornes horizontales : un massif pose sur une dalle ne doit pas
-     deborder au-dela d'elle. Sans elles, les lobes partaient jusqu'a
-     une demi-largeur de chaque cote et de la verdure se retrouvait
-     suspendue dans le ciel, a cote du batiment. */
-  const bx = opt.xmin !== undefined
-    ? (lx, r) => (opt.xmin + r > opt.xmax - r
-        ? (opt.xmin + opt.xmax) / 2
-        : Math.min(Math.max(lx, opt.xmin + r), opt.xmax - r))
-    : lx => lx;
   const esp = opt.espece || 'buis';
-  let couches = [
-    { col: C.v1, n: 7, dx:  .10, dy:  .26, r: [.15, .26] },
-    { col: C.v2, n: 8, dx:  .16, dy:  .08, r: [.14, .24] },
-    { col: C.v3, n: 9, dx: -.02, dy: -.04, r: [.13, .23] },
-    { col: C.v4, n: 7, dx: -.16, dy: -.18, r: [.11, .19] },
-    { col: C.v5, n: 5, dx: -.24, dy: -.28, r: [.08, .15] },
-  ];
-  if (esp === 'conifere') {
-    /* plus sombre, plus serre, plus haut que large */
-    couches = couches.map(c => ({ ...c, r: [c.r[0] * .72, c.r[1] * .80] }));
-    couches.unshift({ col: '#2f4c26', n: 8, dx: .06, dy: .24, r: [.13, .22] });
-  } else if (esp === 'retombant') {
-    /* plus etale, moins haut */
-    couches = couches.map(c => ({ ...c, dy: c.dy * .62, r: [c.r[0] * .92, c.r[1] * 1.08] }));
-  } else if (esp === 'graminee') {
-    /* une base basse : l'essentiel se joue dans les brins, ajoutes apres */
-    couches = couches.slice(0, 3).map(c => ({ ...c, n: Math.round(c.n * .6), dy: c.dy + .22 }));
+  const dens = opt.dens ?? 1;
+  let rx = larg * .5, ry = haut * .5;
+
+  /* bornes horizontales : un massif pose sur une dalle ne doit pas
+     deborder au-dela d'elle. Sans elles, de la verdure se retrouvait
+     suspendue dans le ciel a cote du batiment. */
+  if (opt.xmin !== undefined) {
+    const demi = Math.min(rx, (opt.xmax - opt.xmin) / 2);
+    rx = demi;
+    cx = Math.min(Math.max(cx, opt.xmin + demi), opt.xmax - demi);
   }
-  if (opt.clair) couches.push({ col: C.v6, n: 4, dx: -.28, dy: -.34, r: [.06, .11] });
+
+  const profil = {
+    buis:      { n: 11, irr: .17, ap: 1,    al: 1    },
+    conifere:  { n: 13, irr: .22, ap:  .74, al: 1.18 },
+    retombant: { n: 10, irr: .20, ap: 1.18, al:  .82 },
+    graminee:  { n:  9, irr: .15, ap: 1.05, al:  .62 },
+    fleuri:    { n: 12, irr: .18, ap: 1.06, al:  .94 },
+  }[esp] || { n: 11, irr: .17, ap: 1, al: 1 };
+  rx *= profil.ap; ry *= profil.al;
+  const n = Math.max(7, Math.round(profil.n * (dens > 1 ? 1.15 : 1)));
+
+  const palette = esp === 'conifere'
+    ? ['#2d4a24', '#3f6630', '#55803c']
+    : [C.v1, C.v3, opt.clair ? C.v6 : C.v5];
+
+  const couches = [
+    { col: palette[0], dx:  .07, dy:  .09, s: 1    },
+    { col: palette[1], dx: -.01, dy: -.03, s:  .87 },
+    { col: palette[2], dx: -.15, dy: -.17, s:  .58 },
+  ];
   for (const c of couches) {
-    const n = Math.max(2, Math.round(c.n * dens));
-    for (let i = 0; i < n; i++) {
-      const r = haut * rr(c.r[0], c.r[1]);
-      ell(m,
-        bx(cx + (c.dx + rr(-.34, .34)) * larg * .5, r),
-        cy + (c.dy + rr(-.16, .16)) * haut * .5,
-        r, r * rr(.80, 1.0) * (esp === 'conifere' ? 1.22 : 1), c.col);
-    }
+    el(m, 'path', { d: lobes(cx + c.dx * rx, cy + c.dy * ry, rx * c.s, ry * c.s, n, profil.irr),
+                    fill: c.col });
   }
 
   /* ce qui distingue vraiment une espece d'une autre */
   if (esp === 'graminee') {
-    for (let i = 0; i < Math.round(9 * dens); i++) {
-      const bxx = cx + rr(-.42, .42) * larg, h = haut * rr(.58, 1.02);
-      const dx = rr(-18, 18);
+    for (let i = 0; i < Math.round(10 * dens); i++) {
+      const bxx = cx + rr(-.46, .46) * rx * 2, h = ry * rr(1.1, 2.1), dx = rr(-16, 16);
       el(m, 'path', {
-        d: `M${n1(bxx - 2.2)} ${n1(cy + haut * .34)} `
-         + `Q${n1(bxx + dx * .35)} ${n1(cy + haut * .34 - h * .62)} ${n1(bxx + dx)} ${n1(cy + haut * .34 - h)} `
-         + `Q${n1(bxx + dx * .35 + 2.6)} ${n1(cy + haut * .34 - h * .62)} ${n1(bxx + 2.2)} ${n1(cy + haut * .34)} Z`,
+        d: `M${n1(bxx - 2.3)} ${n1(cy + ry * .7)} `
+         + `Q${n1(bxx + dx * .35)} ${n1(cy + ry * .7 - h * .6)} ${n1(bxx + dx)} ${n1(cy + ry * .7 - h)} `
+         + `Q${n1(bxx + dx * .35 + 2.7)} ${n1(cy + ry * .7 - h * .6)} ${n1(bxx + 2.3)} ${n1(cy + ry * .7)} Z`,
         fill: rnd() < .45 ? C.v3 : C.v5,
       });
     }
   } else if (esp === 'fleuri') {
-    for (let i = 0; i < Math.round(11 * dens); i++) {
-      ell(m, cx + rr(-.46, .46) * larg, cy + rr(-.52, .30) * haut,
-          rr(3.4, 5.6), rr(3.4, 5.6),
-          choix(['#f6f0e2', '#f3cdd4', '#efdca6']));
+    for (let i = 0; i < Math.round(12 * dens); i++) {
+      const a = rr(0, Math.PI * 2), k = Math.sqrt(rnd()) * .86;
+      ell(m, cx + Math.cos(a) * rx * k, cy + Math.sin(a) * ry * k - ry * .12,
+          rr(3.2, 5.2), rr(3.2, 5.2), choix(['#fbf3e4', '#f4ccd3', '#f0dca6']));
     }
   } else if (esp === 'conifere') {
-    for (let i = 0; i < Math.round(5 * dens); i++) {
-      const bxx = cx + rr(-.34, .34) * larg, h = haut * rr(.42, .68);
-      poly(m, [[bxx, cy - haut * .34 - h], [bxx + rr(7, 12), cy - haut * .34],
-               [bxx - rr(7, 12), cy - haut * .34]], '#3a5a2c');
+    /* les fleches doivent rester proportionnees a la masse : calees sur
+       une hauteur absolue, elles devenaient des lances sur un massif de
+       balcon et des brindilles sur une plante en pot */
+    for (let i = 0; i < Math.round(4 * dens); i++) {
+      const bxx = cx + rr(-.4, .4) * rx * 2, h = ry * rr(.46, .82);
+      const demi = Math.max(7, h * .22);
+      poly(m, [[bxx, cy - ry * .52 - h], [bxx + demi, cy - ry * .45],
+               [bxx - demi, cy - ry * .45]], '#2d4a24');
     }
   }
   return m;
 }
 
-/* une retombee : la verdure qui passe par-dessus le bord de la dalle.
-   Une VRILLE fine et sombre, feuillue sur toute sa longueur. Deux
-   impasses evitees ici : des tiges longues, fines et regulieres font
-   une rangee de chenilles accrochees au bandeau ; des langues larges et
-   claires pendent comme des cocons detaches de la plante. Il faut du
-   fin, du court, du sombre, et des feuilles serrees. */
+/* Une retombee : la verdure qui passe par-dessus le bord de la dalle.
+   Une tige effilee et quelques petites feuilles lobees accrochees en
+   alternance. Trois impasses evitees ici : des tiges longues et
+   regulieres font une rangee de chenilles ; des langues larges et
+   claires pendent comme des cocons ; et de simples ellipses alignees
+   donnent un chapelet de perles. */
 function retombee(parent, x, y, lg, opt = {}) {
   const r = g(parent, {});
   const col = opt.col || choix([C.v1, C.v2]);
-  const larg = opt.larg ?? rr(5, 9);
-  const biais = rr(-11, 11);
+  const biais = rr(-13, 13);
+  const tige = (t) => [x + biais * t * t, y + lg * t];
   el(r, 'path', {
-    d: `M${n1(x - larg / 2)} ${n1(y)} `
-     + `Q${n1(x - larg * .3 + biais * .5)} ${n1(y + lg * .6)} ${n1(x + biais)} ${n1(y + lg)} `
-     + `Q${n1(x + larg * .3 + biais * .5)} ${n1(y + lg * .6)} ${n1(x + larg / 2)} ${n1(y)} Z`,
+    d: `M${n1(x - 2.6)} ${n1(y)} `
+     + `Q${n1(x + biais * .3 - 1.4)} ${n1(y + lg * .6)} ${n1(x + biais)} ${n1(y + lg)} `
+     + `Q${n1(x + biais * .3 + 1.4)} ${n1(y + lg * .6)} ${n1(x + 2.6)} ${n1(y)} Z`,
     fill: col,
   });
-  const nf = ri(3, 6);
+  const nf = ri(3, 5);
   for (let i = 0; i < nf; i++) {
-    const t = (i + rr(.15, .85)) / nf;
-    ell(r, x + biais * t + rr(-6, 6), y + lg * t,
-        rr(4, 6.5), rr(3, 5), rnd() < .45 ? C.v2 : C.v3, { rot: rr(-55, 55) });
+    const t = (i + rr(.3, .9)) / nf;
+    const [px, py] = tige(t);
+    const cote = i % 2 ? 1 : -1;
+    const rf = rr(5.5, 8.5) * (1 - t * .3);
+    el(r, 'path', { d: lobes(px + cote * rf * .7, py, rf, rf * .72, 5, .18),
+                    fill: rnd() < .5 ? C.v2 : C.v3 });
   }
   return r;
 }
@@ -887,18 +911,40 @@ function bandePlantee(parent, x, larg, y, opt = {}) {
   return b;
 }
 
-/* un arbre de pleine terre, pour le pied de l'immeuble */
-function arbre(parent, x, sol, haut) {
+/* Un arbre de pleine terre. Tronc effile et deux charpentieres, puis
+   une couronne lobee : un rond pose sur un rectangle donne un arbre en
+   sucette, qui est exactement ce qu'on dessine quand on ne dessine
+   pas. */
+function arbre(parent, x, sol, haut, esp) {
   const a = g(parent, {});
-  const tronc = haut * rr(.30, .40), lt = haut * .044;
+  const tronc = haut * rr(.32, .42), lt = haut * .042;
   ell(a, x, sol + 4, haut * .30, haut * .045, C.solOmbre);
+
+  /* le tronc, legerement incline et plus fin en montant */
+  const pen = rr(-.06, .06) * haut;
   el(a, 'path', {
-    d: `M${n1(x - lt)} ${n1(sol)} L${n1(x - lt * .62)} ${n1(sol - tronc)} `
-     + `L${n1(x + lt * .62)} ${n1(sol - tronc)} L${n1(x + lt)} ${n1(sol)} Z`,
+    d: `M${n1(x - lt)} ${n1(sol)} `
+     + `C${n1(x - lt * .9)} ${n1(sol - tronc * .5)} ${n1(x + pen - lt * .5)} ${n1(sol - tronc * .7)} ${n1(x + pen - lt * .34)} ${n1(sol - tronc)} `
+     + `L${n1(x + pen + lt * .34)} ${n1(sol - tronc)} `
+     + `C${n1(x + pen + lt * .5)} ${n1(sol - tronc * .7)} ${n1(x + lt * .9)} ${n1(sol - tronc * .5)} ${n1(x + lt)} ${n1(sol)} Z`,
     fill: C.tronc,
   });
-  rect(a, x - lt * .3, sol - tronc, lt * .5, tronc, C.troncClair, { op: .5 });
-  massif(a, x, sol - tronc - haut * .32, haut * .92, haut * .74, { dens: 1.25, clair: true });
+  /* deux charpentieres qui partent dans la couronne */
+  for (const sgn of [-1, 1]) {
+    const y0 = sol - tronc * rr(.62, .82), lg = haut * rr(.12, .2);
+    el(a, 'path', {
+      d: `M${n1(x + pen * .7)} ${n1(y0)} Q${n1(x + pen * .7 + sgn * lg * .7)} ${n1(y0 - lg * .3)} ${n1(x + pen * .7 + sgn * lg)} ${n1(y0 - lg * .9)}`,
+      stroke: C.tronc, 'stroke-width': n1(lt * .8), fill: 'none', 'stroke-linecap': 'round',
+    });
+  }
+  /* une arete claire sur le flanc eclaire */
+  el(a, 'path', {
+    d: `M${n1(x - lt * .42)} ${n1(sol)} C${n1(x - lt * .4)} ${n1(sol - tronc * .5)} ${n1(x + pen - lt * .2)} ${n1(sol - tronc * .7)} ${n1(x + pen - lt * .12)} ${n1(sol - tronc)}`,
+    stroke: C.troncClair, 'stroke-width': n1(lt * .42), fill: 'none', opacity: .55,
+  });
+
+  massif(a, x + pen, sol - tronc - haut * .30, haut * .98, haut * .76,
+         { dens: 1.3, clair: true, espece: esp });
   return a;
 }
 
@@ -1115,12 +1161,24 @@ function construire() {
   /* --- nuages, sans contour comme tout le reste --- */
   for (const n of [{ x: VW * .22, y: 140, s: 1 }, { x: VW * .78, y: 310, s: .72 },
                    { x: VW * .48, y: 500, s: .5 }]) {
-    const nu = g(planCiel, { class: 'nuage', opacity: .9 });
+    const nu = g(planCiel, { class: 'nuage', opacity: .92 });
     nu.style.animation = `derive ${rr(80, 120).toFixed(0)}s linear infinite`;
-    for (let i = 0; i < 7; i++) {
-      el(nu, 'circle', { cx: n1(n.x + rr(-104, 104) * n.s), cy: n1(n.y + rr(-13, 13) * n.s),
-                         r: n1(rr(26, 52) * n.s), fill: C.nuage });
+    /* un nuage a le dessus bombe et le DESSOUS PLAT : une poignee de
+       cercles empiles donne une pelote, pas un nuage */
+    const lrg = 150 * n.s, ep = 46 * n.s, nb = 6;
+    let d = `M${n1(n.x - lrg)} ${n1(n.y + ep * .5)}`;
+    for (let i = 0; i < nb; i++) {
+      const x0 = n.x - lrg + (2 * lrg) * (i / nb);
+      const x1 = n.x - lrg + (2 * lrg) * ((i + 1) / nb);
+      const r = (x1 - x0) * rr(.62, .95);
+      d += ` A${n1(r)} ${n1(r)} 0 0 1 ${n1(x1)} ${n1(n.y + ep * .5)}`;
     }
+    d += ` L${n1(n.x - lrg)} ${n1(n.y + ep * .5)} Z`;
+    el(nu, 'path', { d, fill: C.nuage });
+    /* une ombre tres douce sous le ventre */
+    el(nu, 'path', { d: `M${n1(n.x - lrg)} ${n1(n.y + ep * .5)} L${n1(n.x + lrg)} ${n1(n.y + ep * .5)} `
+                      + `L${n1(n.x + lrg * .82)} ${n1(n.y + ep * .5 - 7 * n.s)} L${n1(n.x - lrg * .82)} ${n1(n.y + ep * .5 - 7 * n.s)} Z`,
+                     fill: '#dbe9ee', opacity: .5 });
   }
 
   /* --- les oiseaux --- */
@@ -1241,9 +1299,12 @@ function construire() {
      ------------------------------------------------------------------ */
   const pied = g(planPres, { class: 'niveau', 'data-y': SOL_Y - 150, 'data-etage': NIVEAUX + 1 });
   const vp = g(pied, { class: 'verdure' });
-  /* la haie basse, continue, qui ferme le bas de la facade */
-  for (let hx = x0 - OVER - 70; hx < x0 + LARG + OVER + 70; hx += rr(38, 58)) {
-    massif(vp, hx, SOL_Y - rr(28, 44), rr(96, 144), rr(56, 84), { dens: .9, clair: rnd() < .35 });
+  /* La haie basse qui ferme le pied de la facade. Elle s'interrompt
+     devant l'entree : continue, elle enterrait la porte. */
+  const porteG = x0 + LARG * .34, porteD = x0 + LARG * .66;
+  for (let hx = x0 - OVER - 60; hx < x0 + LARG + OVER + 60; hx += rr(30, 46)) {
+    if (hx > porteG && hx < porteD) continue;
+    massif(vp, hx, SOL_Y - rr(20, 32), rr(70, 108), rr(40, 60), { dens: .9, clair: rnd() < .35 });
   }
   /* Les arbres : trois de chaque cote, ECARTES a pas regulier. Tires au
      hasard dans une bande etroite, ils se chevauchaient au point que la
@@ -1254,12 +1315,12 @@ function construire() {
     const dir = c ? 1 : -1;
     const base = c ? x0 + LARG + OVER : x0 - OVER;
     for (let i = 0; i < 3; i++) {
-      arbres.push({ x: base + dir * (30 + i * VW * .17 + rr(-18, 18)), h: rr(205, 315) });
+      arbres.push({ x: base + dir * (34 + i * VW * .17 + rr(-18, 18)), h: rr(168, 258) });
     }
   }
   /* les plus petits d'abord : les grands passent devant */
   arbres.sort((a, b) => a.h - b.h);
-  for (const a of arbres) arbre(vp, a.x, SOL_Y + rr(10, 50), a.h);
+  for (const a of arbres) arbre(vp, a.x, SOL_Y + rr(10, 50), a.h, 'buis');
   /* Un rideau de buissons tout devant, pose sur une MEME assise : tires
      a des hauteurs libres, ils donnaient l'impression de flotter chacun
      a son etage au-dessus du trottoir. */
@@ -1271,9 +1332,9 @@ function construire() {
   for (let bx = -VW * .08; bx < VW * 1.08; bx += rr(VW * .16, VW * .27)) {
     const n = ri(2, 3);
     for (let j = 0; j < n; j++) {
-      const cx = bx + j * rr(44, 68), cy = SOL_Y + rr(40, 62), h = rr(56, 96);
-      ell(vp, cx, cy + h * .46, h * .78, h * .10, C.solOmbre, { op: .55 });
-      massif(vp, cx, cy, rr(104, 168), h, { dens: 1, clair: rnd() < .4 });
+      const cx = bx + j * rr(40, 62), cy = SOL_Y + rr(38, 58), h = rr(42, 72);
+      ell(vp, cx, cy + h * .46, h * .82, h * .11, C.solOmbre, { op: .5 });
+      massif(vp, cx, cy, rr(76, 124), h, { dens: 1, clair: rnd() < .4 });
     }
   }
 
@@ -1390,11 +1451,7 @@ addEventListener('scroll', lireDefilement, { passive: true });
  *    contraste s'effondre quelque part en route.
  * ================================================================== */
 const PIECE_W = 1200, PIECE_H = 760;
-/* L'allege est basse et la plantation courte : montees au milieu du
-   cadre, les masses vertes traversaient les paragraphes de part en
-   part. La piece se lit en trois bandes — le ciel, l'allege plantee,
-   le sol — et le texte passe devant le ciel. */
-const SILL = 566, SOL_P = 604;      /* haut et bas de l'allege */
+const SOL_P = 556;                  /* la ligne mur / sol */
 
 function dessinerPiece(i) {
   /* RNG local : utiliser celui du batiment ferait deriver le dessin de
@@ -1409,67 +1466,65 @@ function dessinerPiece(i) {
   svg.setAttribute('aria-hidden', 'true');
 
   const defs = el(svg, 'defs', {});
-  const dg = (id, a, b) => {
-    const lg = el(defs, 'linearGradient', { id, x1: 0, y1: 0, x2: 0, y2: 1 });
+  const dg = (id, a, b, x2 = 0, y2 = 1) => {
+    const lg = el(defs, 'linearGradient', { id, x1: 0, y1: 0, x2, y2 });
     el(lg, 'stop', { offset: '0%', 'stop-color': a });
     el(lg, 'stop', { offset: '100%', 'stop-color': b });
   };
-  dg(`p-ciel-${i}`, '#dbe9ef', '#f2efe4');
-  dg(`p-sol-${i}`, '#efe6d4', '#ddd0b9');
+  dg(`m-${i}`, '#f7f1e6', '#eee5d5');          /* le mur, du haut vers le bas */
+  dg(`s-${i}`, '#e4d8c3', '#d6c8ae');          /* le sol, qui fuit            */
+  dg(`v-${i}`, '#eef5f6', '#dfebee');          /* la vitre                    */
 
-  /* --- 1. le ciel, vu a travers le vitrage --- */
-  rect(svg, 0, 0, PIECE_W, SILL, `url(#p-ciel-${i})`);
+  /* --- le mur, le sol, et la plinthe qui les separe --- */
+  rect(svg, 0, 0, PIECE_W, SOL_P, `url(#m-${i})`);
+  rect(svg, 0, SOL_P, PIECE_W, PIECE_H - SOL_P, `url(#s-${i})`);
+  rect(svg, 0, SOL_P - 16, PIECE_W, 16, '#e7dcc8');
+  rect(svg, 0, SOL_P - 16, PIECE_W, 3, '#f3ebdc');
+  rect(svg, 0, SOL_P, PIECE_W, 5, '#c3b398', { op: .6 });
 
-  /* --- 2. la ville au loin, tres pale : elle donne la profondeur sans
-            jamais concurrencer le texte --- */
-  let tx = -40;
-  while (tx < PIECE_W + 40) {
-    const w = rr(46, 122), h = rr(62, 215);
-    rect(svg, tx, SILL - h, w, h, rnd() < .5 ? '#c7daE3' : '#b9cfda', { op: .72 });
-    tx += w + rr(-10, 34);
-  }
-  rect(svg, 0, SILL - 120, PIECE_W, 120, '#e9f1f3', { op: .46 });
+  /* --- UNE fenetre, sur la gauche. C'est elle qui fait la piece :
+         sans ouverture, un mur et un sol ne sont qu'un fond. --- */
+  const fx = 86, fy = 104, fw = 250, fh = 348;
+  rect(svg, fx - 14, fy - 14, fw + 28, fh + 28, '#e2d6c0');      /* l'embrasure */
+  rect(svg, fx - 14, fy - 14, fw + 28, 6, '#f2ead9');
+  rect(svg, fx, fy, fw, fh, `url(#v-${i})`);                      /* la vitre    */
+  /* ce qu'on voit dehors : deux volumes pales, et la ligne d'horizon */
+  rect(svg, fx + 22, fy + 150, 72, fh - 150, '#cfdde3', { op: .75 });
+  rect(svg, fx + 120, fy + 96, 96, fh - 96, '#c6d7df', { op: .7 });
+  rect(svg, fx, fy + fh - 96, fw, 96, '#dfe9ea', { op: .5 });
+  /* la menuiserie : un meneau, une traverse */
+  rect(svg, fx + fw / 2 - 3, fy, 6, fh, '#e9dfcb');
+  rect(svg, fx, fy + fh * .42 - 3, fw, 6, '#e9dfcb');
+  /* l'appui, et son ombre portee sur le mur */
+  rect(svg, fx - 24, fy + fh, fw + 48, 15, '#efe5d2');
+  rect(svg, fx - 24, fy + fh + 15, fw + 48, 7, '#d4c5a9', { op: .6 });
 
-  /* --- 3. les meneaux : la trame de la facade, assez pale pour qu'un
-            paragraphe passe devant --- */
-  for (let k = 1; k < 9; k++) {
-    rect(svg, k * (PIECE_W / 9) - 2.5, 0, 5, SILL, C.facade, { op: .085 });
-  }
-  rect(svg, 0, 150, PIECE_W, 4, C.facade, { op: .07 });
+  /* --- la lumiere qui entre par la fenetre et se pose sur le sol --- */
+  poly(svg, [[fx + 10, SOL_P], [fx + fw + 40, SOL_P],
+             [fx + fw + 210, PIECE_H], [fx - 70, PIECE_H]], '#fdf8ec', { op: .5 });
 
-  /* --- 4. l'allege saumon : c'est elle qui noue la piece a la facade --- */
-  rect(svg, 0, SILL, PIECE_W, SOL_P - SILL, C.dalle);
-  rect(svg, 0, SILL, PIECE_W, 7, C.dalleHaut);
-  rect(svg, 0, SOL_P - 7, PIECE_W, 7, C.dalleOmbre);
+  /* --- une plante en pot, dans l'angle droit --- */
+  const px0 = PIECE_W - 240;
+  ell(svg, px0, SOL_P + 112, 96, 15, '#c4b498', { op: .45 });
+  /* le pot : un tronc de cone, pas un rectangle */
+  el(svg, 'path', {
+    d: `M${n1(px0 - 52)} ${n1(SOL_P + 16)} L${n1(px0 + 52)} ${n1(SOL_P + 16)} `
+     + `L${n1(px0 + 40)} ${n1(SOL_P + 112)} L${n1(px0 - 40)} ${n1(SOL_P + 112)} Z`,
+    fill: C.bac,
+  });
+  rect(svg, px0 - 54, SOL_P + 10, 108, 12, C.bacHaut);
+  el(svg, 'path', {
+    d: `M${n1(px0 + 22)} ${n1(SOL_P + 16)} L${n1(px0 + 52)} ${n1(SOL_P + 16)} `
+     + `L${n1(px0 + 40)} ${n1(SOL_P + 112)} L${n1(px0 + 18)} ${n1(SOL_P + 112)} Z`,
+    fill: C.bacOmbre, opacity: .45,
+  });
+  massif(svg, px0, SOL_P - 72, 230, 210, { dens: 1.15, clair: true, espece: ESPECES[i] || 'buis' });
 
-  /* --- 5. le sol, et l'ombre que l'allege y porte --- */
-  rect(svg, 0, SOL_P, PIECE_W, PIECE_H - SOL_P, `url(#p-sol-${i})`);
-  rect(svg, 0, SOL_P, PIECE_W, 28, '#c9bb9f', { op: .45 });
+  /* --- un trait d'ombre dans l'angle du mur, cote fenetre --- */
+  rect(svg, 0, 0, 26, SOL_P, '#e3d7c2', { op: .55 });
 
-  /* --- 6. les plantations de l'allege, dans l'espece de l'etage --- */
-  const esp = ESPECES[i] || 'buis';
-  for (let k = 0; k < 5; k++) {
-    const gw = rr(118, 190), gx = k * (PIECE_W / 5) + rr(-20, 36);
-    rect(svg, gx, SILL - 22, gw, 22, C.bac);
-    rect(svg, gx, SILL - 22, gw, 4, C.bacHaut);
-    for (let m = gx; m < gx + gw; m += 38 * rr(.8, 1.2)) {
-      const h = rr(44, 82);
-      massif(svg, m, SILL - 18 - h * .47, h * 1.45, h,
-             { dens: 1, clair: rnd() < .5, espece: esp });
-    }
-    for (let r = 0; r < ri(1, 2); r++) retombee(svg, gx + rr(12, gw - 12), SOL_P - 6, rr(20, 44));
-  }
-
-  /* --- 7. le tableau de l'embrasure : plafond et retours lateraux --- */
-  rect(svg, 0, 0, PIECE_W, 42, '#eee3cf');
-  rect(svg, 0, 42, PIECE_W, 10, '#d6c6ab', { op: .66 });
-  for (const rx of [0, PIECE_W - 40]) {
-    rect(svg, rx, 0, 40, PIECE_H, '#f1e8d7');
-    rect(svg, rx === 0 ? 40 : PIECE_W - 47, 0, 7, PIECE_H, '#dbcbb1', { op: .42 });
-  }
-
-  /* --- 8. le voile, qui garantit la lisibilite du texte --- */
-  rect(svg, 0, 0, PIECE_W, PIECE_H, '#fdfaf4', { op: .26 });
+  /* --- le voile : il adoucit l'ensemble sous le texte --- */
+  rect(svg, 0, 0, PIECE_W, PIECE_H, '#fdfaf4', { op: .2 });
 
   rnd = garde;
   return svg;
