@@ -714,37 +714,243 @@ const ell = (p, cx, cy, rx, ry, fill, o = {}) => el(p, 'ellipse', {
  *    soit jamais plate.
  * ================================================================== */
 
-/* Une SILHOUETTE LOBEE : le contour d'une masse de feuillage, trace
-   d'un seul chemin dont chaque segment est un arc bombe vers
-   l'exterieur. C'est ce qui fait la difference entre un dessin et un
-   tas de ronds — une pile de cercles empiles donne des bords mous et
-   des recouvrements visibles, un contour lobe donne une masse franche
-   avec de vraies decoupes de feuilles. */
-function lobes(cx, cy, rx, ry, n, irr) {
-  const pts = [];
+/* ------------------------------------------------------------------
+   LE REPERTOIRE DE SILHOUETTES.
+
+   Tout ce qui suit est RELEVE, pas calcule. Chaque contour est une
+   liste de points places un par un en regardant la reference, puis
+   lisses par une spline qui passe exactement par eux — l'equivalent de
+   l'outil plume. Le code ne fait plus que choisir une silhouette, la
+   mettre a l'echelle et la poser.
+
+   C'est le seul moyen d'obtenir ce que la reference a et qu'aucune
+   formule ne donne : de l'INTENTION. Une regle produit de la
+   regularite, un tirage au sort produit du bruit ; un dessin n'est ni
+   l'un ni l'autre. Les versions precedentes deduisaient le contour
+   d'un cercle deforme, et quelle que soit la finesse du reglage il
+   restait un cercle deforme.
+
+   Repere commun a toutes les listes : une boite de 100 sur 100, le
+   haut en 0, la base en 100. */
+
+/* Huit masses de feuillage, du port le plus etale au plus dresse.
+   Leur BASE est bosselee elle aussi, et c'est important : fermee d'un
+   trait droit, chaque touffe posait un segment horizontal net au
+   milieu de la masse voisine, et une grosse plante se lisait comme une
+   pile d'assiettes. */
+const SIL = [
+  /* 0 — touffe large, quatre bosses, la plus haute a gauche */
+  [2,100, 0,84, 6,72, 3,60, 12,52, 10,41, 21,36, 25,24, 35,28, 40,14,
+   50,20, 56,8, 64,18, 72,12, 76,26, 86,30, 84,42, 93,50, 89,62, 97,72,
+   92,84, 99,100, 80,95, 62,100, 44,94, 26,99, 12,95],
+  /* 1 — fuseau : etroit, tres decoupe sur les flancs */
+  [22,100, 16,86, 24,74, 14,62, 26,50, 18,38, 30,28, 24,16, 38,10, 44,0,
+   56,8, 66,4, 62,18, 74,26, 66,38, 80,46, 70,58, 84,68, 74,80, 86,90,
+   78,100, 64,95, 50,100, 36,94],
+  /* 2 — boule bosselee, epaule droite plus pleine */
+  [6,100, 0,78, 8,62, 2,46, 14,34, 10,20, 26,14, 36,4, 50,10, 62,2,
+   72,12, 86,16, 90,32, 98,44, 92,58, 100,74, 93,88, 96,100, 78,94,
+   58,100, 40,93, 22,98],
+  /* 3 — etalee : une plante basse qui court le long du bac */
+  [0,100, 3,88, 12,82, 9,70, 22,66, 30,56, 40,62, 48,50, 58,58, 66,48,
+   74,58, 82,54, 88,64, 96,70, 92,82, 100,100, 84,95, 68,100, 50,94,
+   34,99, 16,95],
+  /* 4 — dressee, sommet tres decoupe */
+  [10,100, 4,84, 12,70, 6,54, 16,44, 12,30, 22,22, 20,8, 32,16, 38,2,
+   48,12, 56,0, 62,14, 72,6, 76,20, 86,26, 80,40, 90,50, 84,64, 94,76,
+   88,90, 94,100, 76,94, 56,100, 38,93, 22,98],
+  /* 5 — penchee : la masse bascule vers la droite */
+  [4,100, 0,82, 7,68, 3,52, 13,40, 10,26, 24,20, 34,10, 46,16, 58,8,
+   68,16, 78,14, 82,28, 92,34, 88,48, 97,60, 90,74, 98,86, 90,100,
+   72,94, 52,100, 32,93, 16,99],
+  /* 6 — conifere : une pointe franche et des flancs serres */
+  [18,100, 12,88, 20,76, 14,64, 24,52, 18,40, 28,30, 24,18, 34,10, 44,0,
+   52,12, 60,6, 64,20, 74,28, 68,40, 80,50, 72,62, 84,72, 76,84, 86,94,
+   80,100, 64,95, 46,100, 30,94],
+  /* 7 — basse et irreguliere, pour combler entre deux grosses */
+  [0,100, 5,84, 2,70, 14,62, 11,48, 24,42, 32,32, 42,38, 50,26, 60,34,
+   68,24, 78,34, 86,30, 90,44, 98,54, 94,68, 100,84, 96,100, 80,94,
+   62,100, 44,93, 26,98, 12,94],
+];
+
+/* Quatre TACHES : les plaques de lumiere et d'ombre a l'interieur
+   d'une masse. Sur la reference ce ne sont jamais des calques
+   concentriques mais des plaques posees de travers, c'est ce qui donne
+   le grain du feuillage. */
+const TACHE = [
+  [0,40, 14,18, 34,8, 54,2, 72,10, 88,4, 100,22, 92,44, 74,52, 58,46,
+   40,58, 22,52, 8,60],
+  [4,22, 24,4, 48,10, 66,0, 86,14, 100,38, 84,54, 62,48, 44,60, 24,54, 10,42],
+  [0,54, 10,30, 28,20, 44,30, 62,14, 80,24, 96,44, 86,66, 66,74, 48,64,
+   30,76, 12,70],
+  [6,36, 22,12, 42,22, 58,6, 78,18, 94,36, 82,58, 60,52, 42,66, 20,58],
+];
+
+/* Trois FRANGES : le profil decoupe de la verdure qui deborde du
+   bandeau et retombe sur sa face claire. C'est le detail le plus
+   visible de la reference et celui qui manquait le plus — sans lui le
+   bandeau fait une barre nette et la plantation a l'air posee dessus
+   plutot que d'y pousser. Seul le bas est releve ; le haut suit le
+   bord de la dalle. */
+const FRANGE = [
+  [0,4, 7,48, 13,30, 19,74, 25,44, 32,66, 38,34, 45,58, 51,86, 58,52,
+   64,72, 71,40, 77,62, 84,36, 90,54, 96,24, 100,3],
+  [0,3, 6,40, 12,72, 18,36, 25,60, 31,30, 38,54, 44,82, 51,46, 57,66,
+   64,34, 70,58, 77,40, 83,70, 90,44, 96,26, 100,5],
+  [0,5, 7,28, 14,64, 20,38, 27,78, 33,44, 40,60, 47,32, 53,52, 60,80,
+   66,42, 73,66, 79,34, 86,58, 92,30, 100,4],
+];
+
+/* Trois BRINS : les tiges sombres qui pendent devant la terre cuite du
+   bac. Narrow et sinueuses, jamais droites. */
+const BRIN = [
+  [44,0, 52,14, 44,28, 54,42, 46,56, 56,70, 48,84, 52,100, 40,86, 46,72,
+   36,58, 44,44, 34,30, 42,16, 36,0],
+  [46,0, 56,18, 48,34, 60,50, 50,66, 58,82, 50,100, 42,84, 48,68, 38,52,
+   46,36, 36,20, 42,0],
+  [42,0, 50,20, 40,36, 52,54, 42,70, 50,88, 44,100, 34,86, 42,70, 32,52,
+   40,36, 30,18, 38,0],
+];
+
+/* La spline. Elle convertit une liste de points en Beziers cubiques en
+   passant par chacun d'eux (Catmull-Rom). `flip` retourne la forme
+   pour qu'une meme silhouette ne se reconnaisse pas d'une plante a
+   l'autre. */
+function trait(pts, x, y, w, h, flip) {
+  const n = pts.length / 2;
+  const P = i => {
+    const j = ((i % n) + n) % n;
+    const px = flip ? 100 - pts[j * 2] : pts[j * 2];
+    return [x + px / 100 * w, y + pts[j * 2 + 1] / 100 * h];
+  };
+  let d = '';
   for (let i = 0; i < n; i++) {
-    const a = (i / n) * Math.PI * 2 - Math.PI / 2;
-    const k = 1 + (rnd() - .5) * irr;
-    pts.push([cx + Math.cos(a) * rx * k, cy + Math.sin(a) * ry * k]);
-  }
-  let d = `M${n1(pts[0][0])} ${n1(pts[0][1])}`;
-  for (let i = 0; i < n; i++) {
-    const q = pts[(i + 1) % n], p = pts[i];
-    const r = Math.hypot(q[0] - p[0], q[1] - p[1]) * .66;
-    d += ` A${n1(r)} ${n1(r)} 0 0 1 ${n1(q[0])} ${n1(q[1])}`;
+    const p0 = P(i - 1), p1 = P(i), p2 = P(i + 1), p3 = P(i + 2);
+    if (!i) d = `M${n1(p1[0])} ${n1(p1[1])}`;
+    d += ` C${n1(p1[0] + (p2[0] - p0[0]) / 6)} ${n1(p1[1] + (p2[1] - p0[1]) / 6)}`
+       + ` ${n1(p2[0] - (p3[0] - p1[0]) / 6)} ${n1(p2[1] - (p3[1] - p1[1]) / 6)}`
+       + ` ${n1(p2[0])} ${n1(p2[1])}`;
   }
   return d + ' Z';
 }
 
-/* Un massif. Trois silhouettes lobees superposees, de la plus sombre a
-   la plus claire, la lumiere toujours du meme cote — en haut a gauche.
-   Deux calibrages comptent plus que le reste :
-     - le NOMBRE de lobes se deduit du PERIMETRE, pour que la decoupe
-       garde la meme finesse sur une petite touffe et sur un arbre. A
-       nombre fixe, les grosses masses devenaient des bulles lisses ;
-     - la couche CLAIRE est petite. Sur la reference elle n'est qu'un
-       accent ; etalee sur la moitie de la masse, tout vire au vert
-       bonbon. */
+/* Meme spline, mais ouverte : le profil releve fait le BAS de la forme,
+   le haut se referme droit sur le bord de la dalle. */
+function profil(pts, x, y, w, h, flip) {
+  const n = pts.length / 2;
+  const P = i => {
+    const j = Math.min(n - 1, Math.max(0, i));
+    const k = flip ? n - 1 - j : j;
+    return [x + (flip ? 100 - pts[k * 2] : pts[k * 2]) / 100 * w,
+            y + pts[k * 2 + 1] / 100 * h];
+  };
+  let d = `M${n1(x)} ${n1(y)} L${n1(P(0)[0])} ${n1(P(0)[1])}`;
+  for (let i = 0; i < n - 1; i++) {
+    const p0 = P(i - 1), p1 = P(i), p2 = P(i + 1), p3 = P(i + 2);
+    d += ` C${n1(p1[0] + (p2[0] - p0[0]) / 6)} ${n1(p1[1] + (p2[1] - p0[1]) / 6)}`
+       + ` ${n1(p2[0] - (p3[0] - p1[0]) / 6)} ${n1(p2[1] - (p3[1] - p1[1]) / 6)}`
+       + ` ${n1(p2[0])} ${n1(p2[1])}`;
+  }
+  return d + ` L${n1(x + w)} ${n1(y)} Z`;
+}
+
+/* compteur global : les silhouettes servent de masque, et deux SVG
+   coexistent dans la page (la facade et la piece ouverte). Un compteur
+   qui repart a zero ferait pointer les masques de l'une sur ceux de
+   l'autre. */
+let CLIP_N = 0;
+
+/* Les familles de verts. Une derive de teinte d'une plante a l'autre :
+   un olive strictement identique partout donne une facade en
+   plastique.
+
+   Les valeurs sont calees sur une mesure : la moyenne des pixels verts
+   de la reference est #738f4b sur le toit, #708849 au balcon, #7e9d56
+   sur un arbre. J'etais systematiquement une vingtaine de points plus
+   sombre sur chaque canal — d'ou un immeuble qui lisait sapin la ou la
+   reference lit olive clair. Les tons SOMBRES, eux, ne bougent pas :
+   c'est l'ecart entre le clair et le sombre qui fait le grain, et la
+   reference en a nettement plus que moi. */
+function nuancier(esp, clair) {
+  /* Le conifere reste le plus fonce des six, mais il etait devenu
+     NOIR : a #3a5a2c de corps, tout un etage virait au vert bouteille
+     et pesait deux fois plus que les autres. Releve sur la reference,
+     meme le feuillage sombre tourne autour de #4e6c30. */
+  if (esp === 'conifere') return { corps: '#6a8740', fond: '#415f33', clair: '#9fbb5f', ombre: '#2f4727' };
+  if (rnd() < .45)        return { corps: '#7d9a48', fond: '#4a6833', clair: clair ? '#bcd972' : '#a9c164', ombre: '#2f4522' };
+  return { corps: C.v5, fond: C.v3, clair: clair ? '#b6d86e' : C.v7, ombre: C.v1 };
+}
+
+/* UNE TOUFFE : l'unite de dessin.
+   Quatre gestes, dans cet ordre : le corps (une silhouette entiere),
+   l'ombre (une AUTRE silhouette, decalee en bas a droite — surtout pas
+   un calque concentrique, qui donne le fameux empilement de ronds),
+   puis les plaques claires en haut a gauche et les plaques sombres en
+   bas a droite, decoupees au contour du corps. */
+function touffeDessinee(m, x0, y0, w, h, pal, esp, dens, rond) {
+  /* Les silhouettes 1, 4 et 6 sont POINTUES. Elles ne servent qu'a une
+     masse d'un seul tenant, ou pour un conifere : repetees sur les
+     cinq ou six touffes d'une meme plante, elles transformaient la
+     terrasse en foret de cypres. */
+  const RONDES = [0, 2, 3, 5, 7];
+  const iA = esp === 'conifere' ? (rnd() < .7 ? 6 : 1)
+           : rond === false ? ri(0, 7) : choix(RONDES);
+  const iB = (iA + ri(1, 6)) % SIL.length;
+  const fl = rnd() < .5;
+
+  const dCorps = trait(SIL[iA], x0, y0, w, h, fl);
+  el(m, 'path', { d: dCorps, fill: pal.corps });
+  /* L'ombre n'occupe que le QUART bas-droit. A 85 % de la masse elle
+     la recouvrait presque entierement : chaque plante devenait un
+     paquet noir, alors que sur la reference le ton dominant est le
+     vert moyen et le sombre un simple appui. */
+  el(m, 'path', {
+    d: trait(SIL[iB], x0 + w * .40, y0 + h * .52, w * .60, h * .48, !fl),
+    fill: pal.fond,
+  });
+
+  /* les plaques restent dans le contour du corps : lachees libres,
+     certaines flottaient au-dessus de la plante, ce qui est exactement
+     le defaut qu'on cherche a eliminer. */
+  const cid = 've' + (++CLIP_N);
+  el(el(m, 'clipPath', { id: cid }), 'path', { d: dCorps });
+  const dedans = g(m, { 'clip-path': `url(#${cid})` });
+
+  for (let i = 0, nt = 3 + (dens > 1 ? 1 : 0); i < nt; i++) {
+    const tw = w * rr(.34, .62), th = h * rr(.24, .44);
+    el(dedans, 'path', {
+      d: trait(TACHE[ri(0, 3)], x0 + rr(.02, .58) * (w - tw), y0 + rr(.00, .44) * (h - th),
+               tw, th, rnd() < .5),
+      fill: pal.clair,
+    });
+  }
+  if (rnd() < .6) {
+    const tw = w * rr(.26, .44), th = h * rr(.18, .30);
+    el(dedans, 'path', {
+      d: trait(TACHE[ri(0, 3)], x0 + rr(.40, 1) * (w - tw), y0 + rr(.52, 1) * (h - th),
+               tw, th, rnd() < .5),
+      fill: pal.ombre,
+    });
+  }
+}
+
+/* UNE MASSE DE FEUILLAGE : une touffe, ou plusieurs si elle est
+   grande.
+
+   C'est le point le plus delicat du dessin. Une silhouette mise a
+   l'echelle garde ses bosses EN PROPORTION : etiree sur 230 de large,
+   chacune devient un feston de 30 et la plante tourne au nuage de
+   bande dessinee. Au-dela d'une taille de touffe, la masse se compose
+   donc de PLUSIEURS touffes de taille normale, plus hautes au milieu
+   que sur les bords. C'est exactement ce que fait la reference, dont
+   la grande haie de toit n'est pas une forme geante mais une suite de
+   petites touffes qui se chevauchent. */
+const TOUFFE = 86;        /* la taille au-dela de laquelle on divise */
+/* Elle se regle par appel : la piece ouverte dessine dans un repere
+   deux fois plus serre que la facade, une touffe de 86 y occupait le
+   double de pixels a l'ecran et ses bosses redevenaient des festons de
+   bande dessinee. */
+
 function massif(parent, cx, cy, larg, haut, opt = {}) {
   const m = g(parent, {});
   const esp = opt.espece || 'buis';
@@ -760,53 +966,107 @@ function massif(parent, cx, cy, larg, haut, opt = {}) {
     cx = Math.min(Math.max(cx, opt.xmin + demi), opt.xmax - demi);
   }
 
-  const irr = esp === 'conifere' ? .24 : .19;
-  const n = Math.max(8, Math.min(26, Math.round(Math.PI * (rx + ry) / 23)));
+  const pal = nuancier(esp, opt.clair);
+  const x0 = cx - rx, y0 = cy - ry, w = rx * 2, h = ry * 2;
 
-  /* une legere derive de teinte d'une plante a l'autre : un olive
-     strictement identique partout donne une facade en plastique */
-  const chaud = rnd() < .45;
-  const palette = esp === 'conifere'
-    ? ['#2b4423', '#3a5a2c', '#4e6c30']
-    : chaud ? ['#3f5a2c', '#6e8a3e', opt.clair ? '#b0cf62' : '#9bb355']
-            : [C.v2, C.v4, opt.clair ? C.v7 : C.v6];
+  /* Combien de touffes faut-il pour couvrir cette masse sans
+     qu'aucune ne depasse la taille au-dela de laquelle ses bosses
+     deviennent des festons ? Une par aire de touffe, avec du
+     recouvrement. */
+  /* Deux criteres, le plus exigeant gagne : l'AIRE a couvrir, et la
+     LONGUEUR du plus grand axe. Sur l'aire seule, une plante haute et
+     etroite n'avait droit qu'a deux touffes, qui tombaient parfois
+     loin l'une de l'autre : il restait un buisson detache en l'air au
+     milieu du vitrage. */
+  const T = opt.touffe || TOUFFE;
+  const nT = Math.max(1, Math.min(22, Math.max(
+    Math.round(w * h / (T * T * .50)),
+    Math.round(Math.max(w, h) * 2.2 / T))));
+  const poses = [];
+  if (nT === 1) {
+    poses.push([x0, y0, w, h]);
+    touffeDessinee(m, x0, y0, w, h, pal, esp, dens, opt.rond ?? false);
+  } else {
+    /* Comment les REPARTIR est le point le plus delicat du dessin.
+       Tirees au hasard dans l'ellipse, elles laissaient des trous : on
+       voyait des buissons detaches flotter sur le vitrage ou dans le
+       ciel. Alignees en rangees ou en colonnes, leurs bases plates
+       faisaient des etages visibles et la plante se lisait comme une
+       pile de galettes.
 
-  const couches = [
-    { col: palette[0], dx:  .08, dy:  .10, s: 1    },
-    { col: palette[1], dx: -.02, dy: -.04, s:  .88 },
-    { col: palette[2], dx: -.26, dy: -.30, s:  .44 },
-  ];
-  for (const c of couches) {
-    el(m, 'path', { d: lobes(cx + c.dx * rx, cy + c.dy * ry, rx * c.s, ry * c.s,
-                             Math.max(7, Math.round(n * (c.s > .6 ? 1 : .72))), irr),
-                    fill: c.col });
+       La reponse tient a la forme de la masse. Une plante HAUTE se
+       construit sur une colonne vertebrale verticale, une plante
+       ETALEE sur une horizontale, chaque touffe empietant largement
+       sur sa voisine. Une masse RONDE — une couronne d'arbre — se
+       construit en couronne : une au coeur, les autres en anneau, ce
+       qui garantit qu'aucun trou ne s'ouvre au milieu. */
+    const lot = [];
+    const vertical = h > w * 1.3, horizontal = w > h * 1.3;
+    if (vertical || horizontal) {
+      const axe = vertical ? h : w;
+      const pas = axe / nT;
+      for (let i = 0; i < nT; i++) {
+        const t = (i + .5) * pas;
+        const ep = pas * rr(1.55, 2.15);          /* le recouvrement */
+        const tw = vertical ? Math.min(w * 1.15, ep * rr(.9, 1.3)) : ep;
+        const th = vertical ? ep * rr(.62, .9) : Math.min(h * 1.15, ep * rr(.5, .8));
+        const cxx = vertical ? cx + rr(-rx * .30, rx * .30) : x0 + t;
+        /* bornee dans la boite : la touffe du sommet debordait d'une
+           vingtaine vers le haut et la plante du dernier etage venait
+           mordre la dalle au-dessus d'elle */
+        const cyy = vertical ? Math.max(y0 + th / 2, y0 + h - t)
+                             : cy + rr(-ry * .26, ry * .26);
+        lot.push([cxx - tw / 2, cyy - th / 2, tw, th]);
+      }
+    } else {
+      const tw0 = Math.max(T * .8, w * .52), th0 = Math.max(T * .6, h * .52);
+      lot.push([cx - tw0 / 2, cy - th0 / 2, tw0, th0 * rr(.9, 1.05)]);
+      const nA = Math.max(4, nT - 1);
+      for (let i = 0; i < nA; i++) {
+        const a2 = (i / nA) * Math.PI * 2 + rr(-.28, .28);
+        const tw = w * rr(.42, .58), th = tw * rr(.6, .88);
+        lot.push([cx + Math.cos(a2) * (rx - tw * .42) - tw / 2,
+                  cy + Math.sin(a2) * (ry - th * .40) - th / 2, tw, th]);
+      }
+    }
+    /* du bas vers le haut : la lumiere se depose sur les dernieres */
+    lot.sort((p2, q) => (q[1] + q[3]) - (p2[1] + p2[3]));
+    for (const [tx, ty, tw, th] of lot) {
+      poses.push([tx, ty, tw, th]);
+      touffeDessinee(m, tx, ty, tw, th, pal, esp, dens, true);
+    }
   }
 
   /* ce qui distingue vraiment une espece d'une autre */
   if (esp === 'graminee') {
-    for (let i = 0; i < Math.round(11 * dens); i++) {
-      const bxx = cx + rr(-.46, .46) * rx * 2, h = ry * rr(1.1, 2.2), dx = rr(-16, 16);
+    /* des brins qui depassent de la touffe, pas des roseaux : a 2,2
+       fois le rayon ils devenaient plus hauts que la plante et toute
+       la terrasse virait au champ de ble. */
+    for (let i = 0; i < Math.round(7 * dens); i++) {
+      const t = choix(poses);
+      const bxx = t[0] + rr(.15, .85) * t[2], hb = t[3] * rr(.5, 1.1), dx = rr(-11, 11);
       el(m, 'path', {
-        d: `M${n1(bxx - 2.2)} ${n1(cy + ry * .7)} `
-         + `Q${n1(bxx + dx * .35)} ${n1(cy + ry * .7 - h * .6)} ${n1(bxx + dx)} ${n1(cy + ry * .7 - h)} `
-         + `Q${n1(bxx + dx * .35 + 2.6)} ${n1(cy + ry * .7 - h * .6)} ${n1(bxx + 2.2)} ${n1(cy + ry * .7)} Z`,
+        d: `M${n1(bxx - 1.5)} ${n1(t[1] + t[3] * .8)} `
+         + `Q${n1(bxx + dx * .35)} ${n1(t[1] + t[3] * .8 - hb * .6)} ${n1(bxx + dx)} ${n1(t[1] + t[3] * .8 - hb)} `
+         + `Q${n1(bxx + dx * .35 + 1.8)} ${n1(t[1] + t[3] * .8 - hb * .6)} ${n1(bxx + 1.5)} ${n1(t[1] + t[3] * .8)} Z`,
         fill: rnd() < .5 ? C.v4 : C.v6,
       });
     }
   } else if (esp === 'fleuri') {
-    for (let i = 0; i < Math.round(13 * dens); i++) {
-      const a = rr(0, Math.PI * 2), k = Math.sqrt(rnd()) * .86;
-      ell(m, cx + Math.cos(a) * rx * k, cy + Math.sin(a) * ry * k - ry * .12,
-          rr(3, 5), rr(3, 5), choix(['#f7efdd', '#eec4cb', '#e9d49c']));
-    }
-  } else if (esp === 'conifere') {
-    for (let i = 0; i < Math.round(4 * dens); i++) {
-      const bxx = cx + rr(-.4, .4) * rx * 2, h = ry * rr(.46, .82);
-      const demi = Math.max(7, h * .22);
-      poly(m, [[bxx, cy - ry * .52 - h], [bxx + demi, cy - ry * .45],
-               [bxx - demi, cy - ry * .45]], '#2b4423');
+    /* Quelques fleurs pales, pas une pluie de confettis. Et posees
+       SUR une touffe, pas n'importe ou dans la boite de la plante :
+       sur une plante haute et etroite, les pastilles tirees dans
+       l'ellipse montaient en colonne au-dessus du feuillage, comme des
+       bulles. Meme correction pour les brins de graminee. */
+    for (let i = 0; i < Math.round(6 * dens); i++) {
+      const t = choix(poses);
+      ell(m, t[0] + rr(.12, .88) * t[2], t[1] + rr(.10, .72) * t[3],
+          rr(2, 3.2), rr(2, 3.2), choix(['#f2ecdc', '#e6cdcf', '#ddd3ae']));
     }
   }
+  /* le conifere n'a plus de triangles plantes dessus : la silhouette 6
+     et sa gamme plus froide suffisent a le dire. Les triangles se
+     lisaient comme une rangee de sapins de Noel. */
   return m;
 }
 
@@ -814,43 +1074,17 @@ function massif(parent, cx, cy, larg, haut, opt = {}) {
    des plantes de proportions tres differentes : une haute et etroite a
    cote d'une etalee, une boule a cote d'une retombante. Repeter une
    seule forme, meme bien dessinee, donne une rangee de pompons. */
-const PORTS = [
-  { w:  .46, h: 2.10 },   /* fuseau, tres haut */
-  { w:  .58, h: 1.55 },   /* haute et etroite  */
-  { w: 2.30, h:  .55 },   /* etalee            */
-  { w: 1.15, h: 1.00 },   /* boule             */
-  { w: 1.70, h:  .76 },   /* large             */
-  { w:  .80, h: 1.25 },   /* dressee           */
-];
-
-/* Une retombee : la verdure qui passe par-dessus le bord de la dalle.
-   Une tige effilee et quelques petites feuilles lobees accrochees en
-   alternance. Trois impasses evitees ici : des tiges longues et
-   regulieres font une rangee de chenilles ; des langues larges et
-   claires pendent comme des cocons ; et de simples ellipses alignees
-   donnent un chapelet de perles. */
-function retombee(parent, x, y, lg, opt = {}) {
-  const r = g(parent, {});
-  const col = opt.col || choix([C.v1, C.v2]);
-  const biais = rr(-13, 13);
-  const tige = (t) => [x + biais * t * t, y + lg * t];
-  el(r, 'path', {
-    d: `M${n1(x - 2.6)} ${n1(y)} `
-     + `Q${n1(x + biais * .3 - 1.4)} ${n1(y + lg * .6)} ${n1(x + biais)} ${n1(y + lg)} `
-     + `Q${n1(x + biais * .3 + 1.4)} ${n1(y + lg * .6)} ${n1(x + 2.6)} ${n1(y)} Z`,
-    fill: col,
-  });
-  const nf = ri(3, 5);
-  for (let i = 0; i < nf; i++) {
-    const t = (i + rr(.3, .9)) / nf;
-    const [px, py] = tige(t);
-    const cote = i % 2 ? 1 : -1;
-    const rf = rr(5.5, 8.5) * (1 - t * .3);
-    el(r, 'path', { d: lobes(px + cote * rf * .7, py, rf, rf * .72, 5, .18),
-                    fill: rnd() < .5 ? C.v2 : C.v3 });
-  }
-  return r;
-}
+const FUSEAU = { w:  .46, h: 2.10 };   /* tres haut et etroit */
+const HAUTE  = { w:  .58, h: 1.55 };
+const ETALEE = { w: 2.30, h:  .55 };
+const BOULE  = { w: 1.15, h: 1.00 };
+const LARGE  = { w: 1.70, h:  .76 };
+const DRESSEE= { w:  .80, h: 1.25 };
+/* La liste est PONDEREE, pas uniforme. A une chance sur trois de tomber
+   sur un port tres elance, chaque balcon se couvrait de colonnes facon
+   cypres ; sur la reference les plantes de balcon sont trapues, et
+   l'elance est l'exception. */
+const PORTS = [BOULE, BOULE, LARGE, LARGE, ETALEE, DRESSEE, HAUTE, FUSEAU];
 
 /* une touffe dressee : quelques brins fins qui depassent du massif */
 function touffe(parent, x, y, haut) {
@@ -866,23 +1100,6 @@ function touffe(parent, x, y, haut) {
   return t;
 }
 
-/* une jardiniere et ce qui pousse dedans. Le bac reste bas et la masse
-   descend par-dessus : sur la reference on ne voit du bac qu'un lisere
-   de terre cuite sous la verdure. */
-function bac(parent, x, y, larg, haut, opt = {}) {
-  const b = g(parent, {});
-  const hb = opt.hb ?? 23;
-  rect(b, x, y - hb, larg, hb, C.bac);
-  rect(b, x, y - hb, larg, 4, C.bacHaut);
-  rect(b, x, y - 5, larg, 5, C.bacOmbre);
-  const cx = x + larg / 2;
-  /* le bas du feuillage descend jusqu'a la caisse : un massif centre
-     plus haut laissait un vide sombre entre la plante et son bac */
-  massif(b, cx, y - hb + 6 - haut * .47, larg * rr(1.2, 1.6), haut, opt);
-  if (rnd() < .5) touffe(b, cx + rr(-larg * .3, larg * .3), y - hb, haut * rr(.5, .8));
-  return b;
-}
-
 /* UNE BANDE PLANTEE sur toute la longueur d'une dalle.
    Les masses se posent a un pas plus COURT que leur largeur : c'est ce
    chevauchement qui fait une jardiniere continue. Espacees, elles se
@@ -892,57 +1109,110 @@ function bandePlantee(parent, x, larg, y, opt = {}) {
   const b = g(parent, {});
   const dense = !!opt.dense;
 
-  /* Deux a quatre GROUPES par dalle, separes par des pleins de
-     vitrage. Une bande continue d'un bout a l'autre etouffait la
-     facade : on ne voyait plus l'immeuble, seulement une haie. */
+  /* Cinq ou six GROUPES par dalle, separes par des pleins de vitrage.
+     Une bande continue d'un bout a l'autre etouffait la facade : on ne
+     voyait plus l'immeuble, seulement une haie. */
   const nG = dense ? 6 : 5;
   const pas = larg / nG;
   for (let i = 0; i < nG; i++) {
-    const gw = pas * rr(.58, .86);
+    /* Mesure faite sur la reference : a hauteur de balcon elle ne
+       montre que 21 % de vert, le reste etant du vitrage. J'etais a
+       41 % — une haie continue qui cachait la facade. Sur le toit en
+       revanche elle monte a 45 %, d'ou les deux regimes. */
+    const gw = pas * (dense ? rr(.62, .90) : rr(.42, .72));
     const gx = x + i * pas + rr(0, pas - gw);
-    /* chaque groupe a sa propre stature : c'est ce qui donne le profil
-       irregulier de la reference, pas le hasard massif par massif */
     /* Beaucoup de petites plantes plutot que peu de grosses : sur la
        reference chaque bac tient une touffe finement divisee, pas un
        bloc de la taille d'une fenetre. */
-    const hG = rr(dense ? 62 : 46, dense ? 104 : 82);
+    const hG = rr(dense ? 62 : 40, dense ? 104 : 72);
 
     /* 1. le bac, aussi large que le groupe : rentre sous la verdure, il
           laissait voir la facade sombre de part et d'autre et la masse
-          paraissait suspendue a cote de sa jardiniere. */
-    rect(b, gx, y - 22, gw, 22, C.bac);
-    rect(b, gx, y - 22, gw, 4, C.bacHaut);
-    rect(b, gx, y - 5, gw, 5, C.bacOmbre);
+          paraissait suspendue a cote de sa jardiniere. Les planches
+          verticales viennent de la reference, ou la terre cuite n'est
+          jamais d'un seul ton. */
+    /* Sur le TOIT, pas de bac : la reference y montre une haie
+       continue dont la base sombre court d'un bout a l'autre de la
+       terrasse. Une rangee de caisses en terre cuite y faisait un
+       alignement de jardinieres de balcon au mauvais endroit. */
+    const hb = dense ? 14 : 23;
+    if (dense) {
+      rect(b, gx - pas * .2, y - hb, gw + pas * .4, hb, C.v1);
+    } else {
+      rect(b, gx, y - hb, gw, hb, C.bac);
+      rect(b, gx, y - hb, gw, 4, C.bacHaut);
+      /* les planches verticales : sur la reference la terre cuite
+         n'est jamais d'un seul ton */
+      for (let p = 0, np = Math.max(3, Math.round(gw / 15)); p < np; p++) {
+        if (rnd() < .5) continue;
+        rect(b, gx + p * (gw / np), y - hb + 3, gw / np * rr(.5, .9), hb - 3,
+             rnd() < .5 ? C.bacHaut : C.bacOmbre, { op: .35 });
+      }
+      rect(b, gx, y - 5, gw, 5, C.bacOmbre);
+    }
 
     /* 2. deux a quatre plantes de PORTS differents. Leur BAS descend
-          jusqu'a la dalle (y + 4) : posees plus haut, un vide sombre
-          separait le feuillage du bandeau. Elles sont bornees par la
-          dalle, jamais au-dela. */
-    const np = ri(2, 4);
-    for (let k2 = 0; k2 < np; k2++) {
-      const port = choix(PORTS);
-      const h = hG * rr(.72, 1.25) * port.h;
+          s'arrete sur le bord du bac, pas sur la dalle : noye jusqu'au
+          bandeau, le bac disparaissait sous la verdure alors que la
+          reference en montre franchement la terre cuite. Elles sont
+          bornees par la dalle, jamais au-dela. */
+    const np2 = dense ? ri(2, 4) : ri(2, 3);
+    for (let k2 = 0; k2 < np2; k2++) {
+      /* Le toit n'accepte que les ports trapus : la reference y montre
+         une haie large d'un bout a l'autre, pas une rangee de
+         cypres. */
+      const port = dense ? choix([BOULE, LARGE, ETALEE, LARGE, BOULE, DRESSEE])
+                         : choix(PORTS);
+      /* plafonnee a la hauteur d'un niveau : au-dela, la plante
+         traversait la dalle du dessus */
+      const h = Math.min(H * .96, hG * rr(.72, 1.25) * port.h);
       const w = h * (port.w / port.h) * rr(.88, 1.12);
-      const mx = gx + (k2 + rr(.2, .8)) * (gw / np);
-      massif(b, mx, y + 4 - h * .47, w, h,
+      const mx = gx + (k2 + rr(.2, .8)) * (gw / np2);
+      massif(b, mx, y - hb + 9 - h * .47, w, h,
              { dens: dense ? 1.2 : 1.05, clair: rnd() < .42, espece: opt.espece,
                xmin: x, xmax: x + larg });
     }
+    if (rnd() < .45) touffe(b, gx + rr(6, gw - 6), y - hb + 4, rr(26, 52));
 
-    /* 3. ce qui passe par-dessus le bord, sous ce groupe seulement.
-          Courtes et nombreuses, elles se dispersaient en mouchetis vert
-          tout le long du bandeau. */
-    for (let r = 0; r < ri(2, 4); r++) {
-      retombee(b, gx + rr(4, gw - 4), y + DALLE - 3, rr(40, 104));
+    /* 3. les tiges sombres qui pendent devant la terre cuite, posees
+          APRES les plantes : dessinees avant, elles passaient derriere
+          le feuillage et on ne les voyait plus. */
+    for (let s2 = 0, ns = dense ? 0 : ri(2, 5); s2 < ns; s2++) {
+      el(b, 'path', {
+        d: trait(BRIN[ri(0, 2)], gx + rr(0, gw - 10), y - hb + 2, rr(8, 14), rr(16, hb + 8),
+                 rnd() < .5),
+        fill: rnd() < .5 ? C.v1 : C.v2,
+      });
+    }
+
+    /* 4. LA FRANGE : la verdure qui deborde et retombe sur la face
+          claire du bandeau. Sans elle la dalle fait une barre nette et
+          toute la plantation a l'air posee dessus au lieu d'y
+          pousser — c'est le detail le plus present sur la reference. */
+    /* Zero a deux COULEES larges : presente sous chaque groupe, la
+       frange refaisait un lisere vert continu d'un bout a l'autre du
+       bandeau, alors que la reference laisse de grands pans de dalle
+       nus entre deux debordements. Le profil comptant dix-sept
+       bosses, une coulee etroite les serrait en dents de peigne ;
+       etalees sur toute la largeur du groupe elles redeviennent des
+       touffes lisibles, et les extremites du profil, revenues a zero,
+       eteignent la coulee sur ses bords. Elle part du HAUT du bandeau : accrochee
+       dessous, elle pendait dans le vide sur le vitrage. */
+    for (let f = 0, nf = ri(0, 2); f < nf; f++) {
+      const fw = gw * rr(.45, 1.05), fx = gx + rr(-14, gw - fw + 14);
+      el(b, 'path', {
+        d: profil(FRANGE[ri(0, 2)], fx, y - 2, fw, DALLE * rr(.80, 1.30), rnd() < .5),
+        fill: f ? (rnd() < .5 ? C.v5 : C.v4) : C.v6,
+      });
     }
   }
   return b;
 }
 
 /* Un arbre de pleine terre. Tronc effile et deux charpentieres, puis
-   une couronne lobee : un rond pose sur un rectangle donne un arbre en
-   sucette, qui est exactement ce qu'on dessine quand on ne dessine
-   pas. */
+   une couronne faite de trois masses : un rond pose sur un rectangle
+   donne un arbre en sucette, qui est exactement ce qu'on dessine quand
+   on ne dessine pas. */
 function arbre(parent, x, sol, haut, esp) {
   const a = g(parent, {});
   const tronc = haut * rr(.32, .42), lt = haut * .042;
@@ -957,7 +1227,6 @@ function arbre(parent, x, sol, haut, esp) {
      + `C${n1(x + pen + lt * .5)} ${n1(sol - tronc * .7)} ${n1(x + lt * .9)} ${n1(sol - tronc * .5)} ${n1(x + lt)} ${n1(sol)} Z`,
     fill: C.tronc,
   });
-  /* deux charpentieres qui partent dans la couronne */
   for (const sgn of [-1, 1]) {
     const y0 = sol - tronc * rr(.62, .82), lg = haut * rr(.12, .2);
     el(a, 'path', {
@@ -965,25 +1234,24 @@ function arbre(parent, x, sol, haut, esp) {
       stroke: C.tronc, 'stroke-width': n1(lt * .8), fill: 'none', 'stroke-linecap': 'round',
     });
   }
-  /* une arete claire sur le flanc eclaire */
   el(a, 'path', {
     d: `M${n1(x - lt * .42)} ${n1(sol)} C${n1(x - lt * .4)} ${n1(sol - tronc * .5)} ${n1(x + pen - lt * .2)} ${n1(sol - tronc * .7)} ${n1(x + pen - lt * .12)} ${n1(sol - tronc)}`,
     stroke: C.troncClair, 'stroke-width': n1(lt * .42), fill: 'none', opacity: .55,
   });
 
-  /* La couronne est faite de TROIS masses distinctes qui se chevauchent,
-     de verts differents et de tailles differentes. Une seule grosse
-     masse, si bien lobee soit-elle, donne une touffe de brocoli. */
   const cxA = x + pen, cyA = sol - tronc - haut * .30;
+  /* Deux lots sur trois en gamme claire : la mesure donnait #698643 de
+     moyenne pour les arbres de rue contre #7e9d56 sur la reference,
+     ou ils sont ce qu'il y a de plus lumineux dans toute l'image. */
   const lots = [
     { dx: -.22, dy:  .10, s:  .70, clair: false },
-    { dx:  .24, dy:  .02, s:  .64, clair: false },
+    { dx:  .24, dy:  .02, s:  .64, clair: true  },
     { dx: -.04, dy: -.18, s:  .78, clair: true  },
   ];
   for (const l of lots) {
     massif(a, cxA + l.dx * haut, cyA + l.dy * haut,
            haut * .98 * l.s * rr(.92, 1.1), haut * .76 * l.s * rr(.92, 1.1),
-           { dens: 1.15, clair: l.clair, espece: esp });
+           { dens: 1.15, clair: l.clair, espece: esp, rond: true });
   }
   return a;
 }
@@ -1418,7 +1686,7 @@ function construire() {
   const porteG = x0 + LARG * .34, porteD = x0 + LARG * .66;
   for (let hx = x0 - OVER - 60; hx < x0 + LARG + OVER + 60; hx += rr(30, 46)) {
     if (hx > porteG && hx < porteD) continue;
-    massif(vp, hx, SOL_Y - rr(20, 32), rr(70, 108), rr(40, 60), { dens: .9, clair: rnd() < .35 });
+    massif(vp, hx, SOL_Y - rr(20, 32), rr(70, 108), rr(40, 60), { dens: .9, clair: rnd() < .35, rond: true, touffe: 46 });
   }
   /* Les arbres : trois de chaque cote, ECARTES a pas regulier. Tires au
      hasard dans une bande etroite, ils se chevauchaient au point que la
@@ -1448,7 +1716,7 @@ function construire() {
     for (let j = 0; j < n; j++) {
       const cx = bx + j * rr(40, 62), cy = SOL_Y + rr(38, 58), h = rr(42, 72);
       ell(vp, cx, cy + h * .46, h * .82, h * .11, C.solOmbre, { op: .5 });
-      massif(vp, cx, cy, rr(76, 124), h, { dens: 1, clair: rnd() < .4 });
+      massif(vp, cx, cy, rr(76, 124), h, { dens: 1, clair: rnd() < .4, rond: true, touffe: 46 });
     }
   }
 
@@ -1632,7 +1900,12 @@ function dessinerPiece(i) {
      + `L${n1(px0 + 40)} ${n1(SOL_P + 112)} L${n1(px0 + 18)} ${n1(SOL_P + 112)} Z`,
     fill: C.bacOmbre, opacity: .45,
   });
-  massif(svg, px0, SOL_P - 72, 230, 210, { dens: 1.15, clair: true, espece: ESPECES[i] || 'buis' });
+  /* la plante en pot de la piece : silhouette ronde obligatoire. Les
+     deux silhouettes pointues, etalees sur 230 de large, donnaient une
+     etoile de mer verte a cote du texte. */
+  massif(svg, px0, SOL_P - 66, 196, 182,
+         { dens: 1.15, clair: true, rond: true, touffe: 46,
+           espece: ESPECES[i] === 'conifere' ? 'buis' : (ESPECES[i] || 'buis') });
 
   /* --- un trait d'ombre dans l'angle du mur, cote fenetre --- */
   rect(svg, 0, 0, 26, SOL_P, '#e3d7c2', { op: .55 });
