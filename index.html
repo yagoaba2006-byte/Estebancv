@@ -871,7 +871,11 @@ let CLIP_N = 0;
    reference lit olive clair. Les tons SOMBRES, eux, ne bougent pas :
    c'est l'ecart entre le clair et le sombre qui fait le grain, et la
    reference en a nettement plus que moi. */
-function nuancier(esp, clair) {
+function nuancier(esp, clair, sombre) {
+  /* le lierre est nettement plus fonce que ce qui pousse en bac :
+     dans la gamme courante il se lisait comme une plante de plus,
+     plantee debout, au lieu d'une tige accrochee au vitrage */
+  if (sombre) return { corps: '#4a6833', fond: '#36502c', clair: '#6c8a3e', ombre: '#2b4423' };
   /* Le conifere reste le plus fonce des six, mais il etait devenu
      NOIR : a #3a5a2c de corps, tout un etage virait au vert bouteille
      et pesait deux fois plus que les autres. Releve sur la reference,
@@ -966,7 +970,7 @@ function massif(parent, cx, cy, larg, haut, opt = {}) {
     cx = Math.min(Math.max(cx, opt.xmin + demi), opt.xmax - demi);
   }
 
-  const pal = nuancier(esp, opt.clair);
+  const pal = nuancier(esp, opt.clair, opt.sombre);
   const x0 = cx - rx, y0 = cy - ry, w = rx * 2, h = ry * 2;
 
   /* Combien de touffes faut-il pour couvrir cette masse sans
@@ -1074,8 +1078,11 @@ function massif(parent, cx, cy, larg, haut, opt = {}) {
    des plantes de proportions tres differentes : une haute et etroite a
    cote d'une etalee, une boule a cote d'une retombante. Repeter une
    seule forme, meme bien dessinee, donne une rangee de pompons. */
-const FUSEAU = { w:  .46, h: 2.10 };   /* tres haut et etroit */
-const HAUTE  = { w:  .58, h: 1.55 };
+/* Les deux ports eleves ont ete ELARGIS : a 0,46 de rapport le fuseau
+   donnait des tiges d'asperge, la ou la reference montre des plantes
+   dressees mais touffues du haut. */
+const FUSEAU = { w:  .62, h: 2.10 };   /* haut et dresse */
+const HAUTE  = { w:  .74, h: 1.55 };
 const ETALEE = { w: 2.30, h:  .55 };
 const BOULE  = { w: 1.15, h: 1.00 };
 const LARGE  = { w: 1.70, h:  .76 };
@@ -1119,12 +1126,19 @@ function bandePlantee(parent, x, larg, y, opt = {}) {
        montre que 21 % de vert, le reste etant du vitrage. J'etais a
        41 % — une haie continue qui cachait la facade. Sur le toit en
        revanche elle monte a 45 %, d'ou les deux regimes. */
-    const gw = pas * (dense ? rr(.62, .90) : rr(.42, .72));
+    const gw = pas * (dense ? rr(.62, .90) : rr(.38, .66));
     const gx = x + i * pas + rr(0, pas - gw);
+    /* AUX DEUX EXTREMITES, la verdure a le droit de passer le bord.
+       Sur la reference, le buisson du coin deborde franchement sur le
+       ciel ; borne au millimetre de la dalle, mon immeuble avait des
+       angles coupes au couteau. Le bac, lui, reste sur la dalle : ce
+       qui depasse est du feuillage, pas de la jardiniere en l'air. */
+    const bout = i === 0 ? -1 : i === nG - 1 ? 1 : 0;
+    const deb = bout ? 44 : 0;
     /* Beaucoup de petites plantes plutot que peu de grosses : sur la
        reference chaque bac tient une touffe finement divisee, pas un
        bloc de la taille d'une fenetre. */
-    const hG = rr(dense ? 62 : 40, dense ? 104 : 72);
+    const hG = rr(dense ? 62 : 42, dense ? 104 : 74);
 
     /* 1. le bac, aussi large que le groupe : rentre sous la verdure, il
           laissait voir la facade sombre de part et d'autre et la masse
@@ -1170,9 +1184,25 @@ function bandePlantee(parent, x, larg, y, opt = {}) {
       const mx = gx + (k2 + rr(.2, .8)) * (gw / np2);
       massif(b, mx, y - hb + 9 - h * .47, w, h,
              { dens: dense ? 1.2 : 1.05, clair: rnd() < .42, espece: opt.espece,
-               xmin: x, xmax: x + larg });
+               xmin: x - (bout < 0 ? deb : 0), xmax: x + larg + (bout > 0 ? deb : 0) });
     }
     if (rnd() < .45) touffe(b, gx + rr(6, gw - 6), y - hb + 4, rr(26, 52));
+
+    /* LES GRIMPANTS. Sur la reference, des colonnes vertes etroites
+       montent le long du vitrage sur toute la hauteur d'un niveau, le
+       plus souvent contre un angle. C'est ce qui empeche la verdure de
+       rester sagement posee sur ses jardinieres : elle MORD sur la
+       facade. Etroits et sombres, ils se lisent comme un lierre et non
+       comme une plante de plus. Un par etage au plus : a une chance
+       sur deux par groupe, la facade se couvrait de bornes vertes. */
+    if (!dense && rnd() < .17) {
+      const hGr = Math.min(H - DALLE - 8, H * rr(.46, .88));
+      const lGr = rr(10, 17);
+      massif(b, gx + (rnd() < .5 ? rr(0, gw * .22) : rr(gw * .78, gw)),
+             y - hb + 6 - hGr * .5, lGr, hGr,
+             { dens: .9, sombre: true, espece: opt.espece, touffe: 32,
+               xmin: x - (bout < 0 ? deb : 0), xmax: x + larg + (bout > 0 ? deb : 0) });
+    }
 
     /* 3. les tiges sombres qui pendent devant la terre cuite, posees
           APRES les plantes : dessinees avant, elles passaient derriere
