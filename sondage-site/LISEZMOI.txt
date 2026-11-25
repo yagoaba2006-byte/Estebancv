@@ -6,46 +6,99 @@ Groupe 1 : Tamara, Juliane, Ilian, Yago
 1. CE QUE CONTIENT CE DOSSIER
 -----------------------------
 index.html    La page complete : HTML, CSS, JavaScript, images.
-              Un seul fichier, aucune dependance exterieure.
-              Les textures (papier, cacao, creme) sont integrees
-              dedans en base64 : rien d'autre a televerser.
+              Un seul fichier, aucune dependance exterieure. Les
+              textures (papier, cacao, creme) sont integrees dedans :
+              rien d'autre a televerser.
 LISEZMOI.txt  Ce fichier.
-sources/      Les fichiers qui ont servi a fabriquer les images, et
-              les scripts qui les recalculent (textures.py) puis les
-              integrent dans la page (injecter.py). Inutile pour
-              mettre le sondage en ligne : seul index.html compte.
-              A garder si vous voulez retoucher les biscuits.
+sources/      Les scripts qui recalculent les images (textures.py) et
+              les reinjectent dans la page (injecter.py). Inutile pour
+              mettre le sondage en ligne ; a garder seulement si vous
+              voulez retoucher les biscuits.
+qr/           Un QR code et une diapo de projection, fabriques avant
+              que l'adresse definitive soit connue. A refaire une fois
+              le depot cree.
 
 
-2. CE QU'IL RESTE A FAIRE AVANT L'ORAL
---------------------------------------
-Une seule chose est indispensable : creer la base de donnees et
-coller son adresse dans index.html (etape 3). Sans elle, la page
-s'affiche normalement mais aucun vote n'est enregistre et la
-section des resultats indique « Resultats indisponibles ».
-La page n'invente jamais de chiffres.
+2. COMMENT LA PAGE EST UTILISEE
+-------------------------------
+Le meme fichier sert deux publics differents, selon l'adresse ouverte.
+
+LES TELEPHONES ouvrent l'adresse nue, celle du QR code :
+    https://votre-compte.github.io/sondage-mondelez/
+Ils voient le formulaire, votent, recoivent un remerciement. Ils ne
+voient jamais les resultats : aucun bouton ne leur est propose.
+
+L'ECRAN DE PROJECTION ouvre la meme adresse suivie de ?resultat :
+    https://votre-compte.github.io/sondage-mondelez/?resultat
+Pas de formulaire, un seul bouton : « Voir le resultat du sondage ».
+Tout y est agrandi pour rester lisible depuis le fond de la salle.
+Gardez cet onglet ouvert pendant que les etudiants votent, et
+cliquez au moment voulu : les biscuits partent vides et la creme
+monte jusqu'au pourcentage obtenu.
+
+N'oubliez pas le ?resultat sur l'ordinateur : sans lui, vous
+obtiendrez le formulaire, pas les resultats.
 
 
-3. CREER LA BASE DE DONNEES (5 MINUTES, GRATUIT)
-------------------------------------------------
-a) Aller sur https://console.firebase.google.com et se connecter
-   avec un compte Google.
-b) « Ajouter un projet ». Un nom au choix, par exemple
-   sondage-mondelez-groupe1. Google Analytics : refuser.
-c) Dans le menu de gauche : Build > Realtime Database >
-   « Creer une base de donnees ».
-   - Emplacement : Belgium (europe-west1).
-   - Regles de securite : « Demarrer en mode test ».
-     Le mode test ouvre l'ecriture pendant 30 jours. C'est voulu
-     pour un sondage de cours : les etudiants votent sans compte.
-d) En haut de la page s'affiche une adresse de la forme
-   https://sondage-mondelez-groupe1-default-rtdb.europe-west1.firebasedatabase.app
-   La copier.
-e) Ouvrir index.html dans un editeur de texte, chercher la ligne
-   qui commence par   var BASE_URL =
-   et remplacer l'adresse d'exemple par la votre, entre guillemets,
-   SANS barre oblique a la fin.
-f) Enregistrer, puis renvoyer le fichier sur GitHub (etape 4).
+3. CREER LE SERVICE QUI RECUEILLE LES VOTES (10 MINUTES, GRATUIT)
+-----------------------------------------------------------------
+Pourquoi c'est indispensable : GitHub Pages ne sait que livrer des
+fichiers, il n'execute rien et ne retient rien. Pour que les votes
+de trente telephones arrivent sur votre ecran, ils doivent passer
+par un service exterieur. Nous utilisons Supabase : gratuit,
+serveurs en Europe, inscription avec votre compte GitHub.
+
+a) https://supabase.com — « Start your project », se connecter avec
+   GitHub.
+b) « New project ». Nom au choix, par exemple sondage-mondelez.
+   Mot de passe de base de donnees : generez-le et gardez-le, vous
+   n'en aurez pas besoin ici. Region : Frankfurt ou Paris.
+   La creation prend une a deux minutes.
+c) Menu de gauche : SQL Editor > New query. Coller exactement ceci,
+   puis « Run » :
+
+      create table votes (
+        id bigint generated always as identity primary key,
+        cree_le timestamptz default now(),
+        q1 text[],
+        q2 text,
+        q3 text,
+        q4 text,
+        q5 text
+      );
+
+      alter table votes enable row level security;
+
+      create policy "tout le monde peut voter"
+        on votes for insert to anon with check (true);
+
+      create policy "tout le monde peut lire"
+        on votes for select to anon using (true);
+
+   Les deux dernieres instructions sont ce qui autorise un visiteur
+   sans compte a voter et a lire les totaux. C'est voulu pour un
+   sondage de cours.
+
+d) Menu de gauche : Project Settings > API. Relever deux valeurs :
+   - Project URL, de la forme https://abcdefgh.supabase.co
+   - la cle publique, appelee « anon public » ou « publishable ».
+     C'est une longue suite de caracteres. Elle est faite pour etre
+     dans une page web : ce n'est pas un secret, elle ne donne que
+     les droits que vous venez d'ecrire.
+
+e) Ouvrir index.html dans un editeur de texte. Tout en haut du
+   script, un encadre CONFIGURATION contient trois lignes :
+
+      var ADRESSE = "https://VOTRE-PROJET.supabase.co";
+      var CLE     = "VOTRE-CLE-PUBLIQUE";
+      var TABLE   = "votes";
+
+   Remplacer les deux premieres valeurs par les votres, entre
+   guillemets. Ne pas toucher a la troisieme. Enregistrer.
+
+Tant que le mot VOTRE-PROJET est present, la page s'affiche
+normalement mais n'enregistre rien et annonce « Resultats
+indisponibles ». Elle n'invente jamais de chiffres.
 
 
 4. METTRE LA PAGE EN LIGNE (GITHUB PAGES)
@@ -58,84 +111,76 @@ b) « uploading an existing file », deposer index.html.
 c) Onglet Settings > Pages.
    - Source : « Deploy from a branch »
    - Branch : main   -   dossier : / (root)   -   Save
-d) Attendre une a deux minutes, puis recharger la page Settings >
-   Pages : l'adresse publique s'affiche en haut. Elle ressemble a
-   https://votre-compte.github.io/sondage-mondelez/
-e) Ouvrir cette adresse sur un telephone pour verifier.
+d) Attendre une a deux minutes, puis recharger Settings > Pages :
+   l'adresse publique s'affiche en haut.
+e) L'ouvrir sur un telephone pour verifier.
+
+Pour modifier la page plus tard, redeposer le fichier au meme
+endroit : GitHub remplace l'ancien et publie en une minute.
 
 
 5. LE QR CODE
 -------------
-Une fois l'adresse GitHub Pages connue, generer le QR code avec
-n'importe quel generateur gratuit (par exemple qr-code-generator.com
-ou le generateur integre a Canva). Coller l'adresse complete,
-telecharger l'image en PNG, et la projeter en grand sur la
-diapositive. Verifier avant l'oral que le QR code se scanne depuis
-le fond de la salle.
+Une fois l'adresse connue, generer le QR code avec n'importe quel
+generateur gratuit, ou me redemander la diapo deja preparee. Le QR
+doit pointer vers l'adresse NUE, sans ?resultat : c'est l'adresse
+de vote. Verifier avant l'oral qu'il se scanne depuis le fond de
+la salle.
 
 
 6. LE JOUR DE L'ORAL
 --------------------
+- Sur l'ordinateur qui projette, ouvrir l'adresse avec ?resultat et
+  laisser l'onglet ouvert.
 - Projeter le QR code, laisser une a deux minutes pour voter.
-- Sur l'ordinateur qui projette, ouvrir la meme adresse et cliquer
-  sur « Voir le resultat du sondage », en bas du formulaire.
-  La section des resultats apparait : pour chaque question, un
-  biscuit par reponse, dont la creme monte en huit dixiemes de
-  seconde jusqu'au pourcentage obtenu.
-- Les resultats se rafraichissent tout seuls toutes les 5 secondes :
-  inutile de recharger la page pendant que les derniers votent.
-- Le pourcentage est affiche en chiffres sous chaque biscuit.
-  Pour la question 1 (plusieurs reponses possibles), le pourcentage
-  est la part des votants qui ont coche cette marque ; le total
-  depasse donc 100 %, c'est normal.
+- Quand tout le monde a vote, cliquer sur « Voir le resultat du
+  sondage ». Les biscuits se remplissent en huit dixiemes de
+  seconde.
+- Les chiffres se rafraichissent ensuite tout seuls toutes les
+  cinq secondes, sans repartir de zero : un retardataire qui vote
+  fait simplement bouger la creme.
+- Le pourcentage est ecrit sous chaque biscuit. Pour la question 1,
+  plusieurs reponses etant possibles, chaque pourcentage est la part
+  des votants ayant coche cette marque : le total depasse 100 %,
+  c'est normal.
 
 
 7. REGLES DE FONCTIONNEMENT
 ---------------------------
 - Un vote par appareil. Le navigateur retient le vote dans sa
   memoire locale (cle mondelez_groupe1_vote). Quelqu'un qui revient
-  sur la page voit directement le message de remerciement et le
-  lien vers les resultats.
-- Pour revoter depuis le meme telephone pendant les essais : ouvrir
-  la page en navigation privee, ou vider les donnees du site.
+  sur la page voit directement le remerciement.
+- Pour revoter pendant les essais : navigation privee, ou vider les
+  donnees du site.
 - Toutes les questions doivent etre remplies ; sinon un message
   rouge indique lesquelles manquent.
 
 
-8. TESTER AVANT L'ORAL (A FAIRE A DEUX TELEPHONES)
---------------------------------------------------
-- Telephone 1 : voter. Verifier le message de remerciement.
-- Telephone 2 : ouvrir la page, cliquer « Voir le resultat » sans
-  voter. Le vote du telephone 1 doit apparaitre en moins de 5 s.
-- Verifier que la creme monte bien a l'ouverture des resultats.
+8. TESTER AVANT L'ORAL (A DEUX TELEPHONES)
+------------------------------------------
+- Telephone 1 : voter. Verifier le remerciement, et qu'aucun bouton
+  de resultat n'apparait.
+- Telephone 2 : voter aussi.
+- Ordinateur : ouvrir l'adresse avec ?resultat, cliquer sur le
+  bouton. Les deux votes doivent apparaitre, et la creme monter.
 - Verifier que le telephone 1 ne peut pas voter deux fois.
-- Verifier l'affichage sur un petit ecran (moins de 420 px de
-  large) : l'en-tete passe en colonne, les biscuits en grille.
-- Avant l'oral, vider les votes d'essai : dans la console Firebase,
-  Realtime Database, supprimer le noeud « votes ».
+- Verifier l'affichage sur un petit ecran (moins de 420 px).
+- Avant l'oral, effacer les votes d'essai : dans Supabase, Table
+  Editor > votes > selectionner les lignes > supprimer.
 
 
 9. LES IMAGES
 -------------
-Les biscuits, le grain du papier et la creme ont ete generes
-specialement pour cette page (bruit fractal, carte de relief,
-eclairage calcule), puis integres dans index.html. Ils ne
-reprennent aucune photo de produit ni aucun logo de marque :
-rien a demander comme autorisation pour le cours.
+Les biscuits, le grain du papier et la creme ont ete calcules pour
+cette page (bruit fractal, carte de relief, eclairage), puis
+integres dans index.html. Ils ne reprennent aucune photo de produit
+ni aucun logo : rien a demander comme autorisation pour le cours.
 
-Pour remplacer le visuel de l'en-tete par une image a vous (photo
-ou visuel Canva), il faut un fichier que vous avez le droit
-d'utiliser. Demandez-le : la page sera adaptee pour l'afficher.
+Pour mettre une image a vous dans l'en-tete, il faut un fichier que
+vous avez le droit d'utiliser. Envoyez-le et la page sera adaptee.
 
 
-10. PLAN DE SECOURS
--------------------
-Si le reseau de la salle ou la base de donnees pose probleme :
-basculer sur Wooclap, evenement AAKRQUJ, deja configure avec son
-QR code et ses resultats en direct.
-
-
-11. CHOIX D'ECRITURE
+10. CHOIX D'ECRITURE
 --------------------
 Les questions et les reponses sont en texte simple : pas d'icones,
 pas d'emojis, pas d'abreviations. C'est volontaire. Au
@@ -144,17 +189,23 @@ ou ne s'affiche pas du tout, alors qu'un mot reste lisible partout.
 Les seules images de la page sont les biscuits des resultats.
 
 
+11. PLAN DE SECOURS
+-------------------
+Si le reseau de la salle ou le service de collecte pose probleme :
+basculer sur Wooclap, evenement AAKRQUJ, deja configure avec son
+QR code et ses resultats en direct.
+
+
 12. MODIFIER LA PAGE
 --------------------
 Le texte des questions se trouve deux fois dans index.html :
 - dans le formulaire, entre les balises <fieldset> ;
-- dans la liste QUESTIONS du script, qui sert a l'affichage des
-  resultats.
+- dans la liste QUESTIONS du script, qui sert aux resultats.
 Si vous changez une reponse, changez-la aux deux endroits, a
-l'identique (accents compris), sinon le comptage ne retrouvera
-pas l'option.
+l'identique, accents compris, sinon le comptage ne retrouvera pas
+l'option.
 
 Dans les resultats, chaque biscuit porte deux reperes :
-<question>-<rang>-c pour la creme qui monte, et -t pour le texte du
+<question>-<rang>-c pour la creme qui monte, -t pour le texte du
 pourcentage. Par exemple q2-0-c est la creme du premier biscuit de
 la question 2.

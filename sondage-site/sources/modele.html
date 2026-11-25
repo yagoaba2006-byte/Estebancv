@@ -20,6 +20,10 @@
   }
 
   *{margin:0;padding:0;box-sizing:border-box}
+  /* .bouton impose display:block, qui l'emporterait sur le display:none
+     par defaut de [hidden] : sans ce !important, masquer un bouton
+     avec hidden reste sans effet. */
+  [hidden]{display:none !important}
   html{-webkit-text-size-adjust:100%}
   body{
     background-color:var(--creme);
@@ -204,6 +208,28 @@
     .pourcent{font-size:1.05rem}
     .etiquette{font-size:.72rem}
   }
+  /* Vue projection (adresse suivie de ?resultat) : tout grossit pour
+     rester lisible depuis le fond de la salle, et les huit marques
+     de Q1 tiennent sur une seule ligne. */
+  body.ecran .page{max-width:1180px}
+  body.ecran header{margin-bottom:18px}
+  body.ecran .cellule svg{max-width:148px}
+  body.ecran .pourcent{font-size:1.7rem;margin-top:10px}
+  body.ecran .etiquette{font-size:1rem}
+  body.ecran .bloc-resultat{margin-bottom:42px}
+  body.ecran .bloc-resultat h3{font-size:1.35rem}
+  body.ecran #resultats > h2{font-size:2.2rem}
+  body.ecran .etat{font-size:.95rem}
+  /* colonnes de largeur fixe et grille centree : a trois ou quatre
+     options, les biscuits se repondent au lieu de s'eparpiller sur
+     toute la largeur de l'ecran */
+  body.ecran .grille{gap:20px 26px;justify-content:center}
+  body.ecran .grille[data-n="3"]{grid-template-columns:repeat(3,176px)}
+  body.ecran .grille[data-n="4"]{grid-template-columns:repeat(4,176px)}
+  @media (min-width:900px){
+    body.ecran .grille[data-n="8"]{grid-template-columns:repeat(8,minmax(0,1fr))}
+  }
+
   @media (prefers-reduced-motion:reduce){
     .creme-monte{transition:none}
     .bouton:active{transform:none}
@@ -325,16 +351,30 @@
 </div>
 
 <script>
-/* ------------------------------------------------------------------
-   Base de donnees : Firebase Realtime Database, region Europe, mode
-   test. Remplacer l'adresse ci-dessous par celle du projet, sans
-   barre oblique finale. Tant que le mot VOTRE-PROJET est present, la
-   page affiche « Resultats indisponibles » et n'invente rien.
-   ------------------------------------------------------------------ */
-var BASE_URL = "https://VOTRE-PROJET-default-rtdb.europe-west1.firebasedatabase.app";
+/* ==================================================================
+   CONFIGURATION — les deux seules lignes a remplir, voir LISEZMOI
+   section 3. Tant que le mot VOTRE-PROJET est la, la page marche
+   mais n'enregistre rien et annonce « Resultats indisponibles » :
+   elle n'invente jamais de chiffres.
+   ================================================================== */
+var ADRESSE = "https://VOTRE-PROJET.supabase.co";
+var CLE     = "VOTRE-CLE-PUBLIQUE";
+var TABLE   = "votes";
+/* ================================================================== */
 
 var CLE_VOTE = "mondelez_groupe1_vote";
 var DELAI_RAFRAICHISSEMENT = 5000;
+
+/* Un seul fichier, deux usages. Les telephones ouvrent l'adresse
+   nue : ils votent, et ne voient jamais les resultats. L'ecran de
+   projection ouvre la meme adresse suivie de ?resultat. */
+var MODE_ECRAN = location.search.indexOf("resultat") !== -1;
+
+function configuree(){ return ADRESSE.indexOf("VOTRE-PROJET") === -1; }
+function pointDeCollecte(){ return ADRESSE.replace(/\/+$/, "") + "/rest/v1/" + TABLE; }
+function entetes(){
+  return {"apikey": CLE, "Authorization": "Bearer " + CLE, "Content-Type": "application/json"};
+}
 
 var QUESTIONS = [
   {id:"q1", type:"multi",  titre:"Q1 — Marques connues",            options:["Oreo","LU","Milka","Côte d'Or","Prince","Tuc","Toblerone","Aucune"]},
@@ -448,19 +488,18 @@ function envoyer(e){
     return;
   }
 
-  if(BASE_URL.indexOf("VOTRE-PROJET") !== -1){
-    erreur.textContent = "La base de données n'est pas encore configurée : le vote ne peut pas être enregistré.";
+  if(!configuree()){
+    erreur.textContent = "Le service de collecte n'est pas encore configuré : le vote ne peut pas être enregistré.";
     return;
   }
 
   erreur.textContent = "";
   bouton.disabled = true;
   bouton.textContent = "Envoi…";
-  lu.vote.horodatage = new Date().toISOString();
 
-  fetch(BASE_URL + "/votes.json", {
+  fetch(pointDeCollecte(), {
     method: "POST",
-    headers: {"Content-Type": "application/json"},
+    headers: entetes(),
     body: JSON.stringify(lu.vote)
   }).then(function(r){
     if(!r.ok){ throw new Error("HTTP " + r.status); }
@@ -518,16 +557,18 @@ function vider(){
 function charger(){
   var etat = document.getElementById("etat-resultats");
 
-  if(BASE_URL.indexOf("VOTRE-PROJET") !== -1){
-    etat.textContent = "Résultats indisponibles : la base de données n'est pas encore configurée.";
+  if(!configuree()){
+    etat.textContent = "Résultats indisponibles : le service de collecte n'est pas encore configuré.";
     return;
   }
 
-  fetch(BASE_URL + "/votes.json", {cache: "no-store"}).then(function(r){
+  fetch(pointDeCollecte() + "?select=q1,q2,q3,q4,q5", {
+    headers: entetes(), cache: "no-store"
+  }).then(function(r){
     if(!r.ok){ throw new Error("HTTP " + r.status); }
     return r.json();
   }).then(function(data){
-    var votes = data ? Object.keys(data).map(function(k){ return data[k]; }) : [];
+    var votes = Object.prototype.toString.call(data) === "[object Array]" ? data : [];
     peindre(compter(votes));
     etat.textContent = votes.length === 0
       ? "Aucun vote pour le moment. Mise à jour automatique toutes les 5 secondes."
@@ -563,7 +604,23 @@ construireBlocs();
 document.getElementById("sondage").addEventListener("submit", envoyer);
 document.getElementById("revele").addEventListener("click", reveler);
 document.getElementById("revele-merci").addEventListener("click", reveler);
-if(dejaVote()){ afficherMerci(); }
+
+if(MODE_ECRAN){
+  /* Ecran de projection : pas de formulaire, un seul bouton. */
+  document.body.classList.add("ecran");
+  document.getElementById("sondage").hidden = true;
+  document.getElementById("merci").hidden = true;
+  document.getElementById("revele-merci").hidden = true;
+  document.getElementById("revele").classList.remove("bouton-secondaire");
+  document.querySelector(".consigne").textContent =
+    "Écran de projection. Cliquez sur le bouton quand tout le monde a voté.";
+}else{
+  /* Telephone : on vote, et c'est tout. Les resultats ne sont
+     montres qu'une fois, au tableau. */
+  document.getElementById("revele").hidden = true;
+  document.getElementById("revele-merci").hidden = true;
+  if(dejaVote()){ afficherMerci(); }
+}
 </script>
 </body>
 </html>
