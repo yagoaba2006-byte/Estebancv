@@ -5,15 +5,22 @@ Groupe 1 : Tamara, Juliane, Ilian, Yago
 
 1. CE QUE CONTIENT CE DOSSIER
 -----------------------------
-index.html    La page complete : HTML, CSS, JavaScript, images.
-              Un seul fichier, aucune dependance exterieure. Les
-              textures (papier, cacao, creme) sont integrees dedans :
-              rien d'autre a televerser.
+index.html    La page complete : HTML, CSS, JavaScript et dessins.
+              Un seul fichier de 26 ko, aucune dependance exterieure,
+              lisible et modifiable dans n'importe quel editeur de
+              texte. C'est le seul fichier a mettre en ligne.
+
+              Les biscuits ne sont pas des photos : ce sont des formes
+              SVG dont la matiere est calculee par le navigateur, un
+              bruit fractal eclaire par une lumiere rasante. D'ou le
+              poids tres faible, et un chargement instantane meme
+              quand trente telephones ouvrent la page en meme temps.
+
 LISEZMOI.txt  Ce fichier.
-sources/      Les scripts qui recalculent les images (textures.py) et
-              les reinjectent dans la page (injecter.py). Inutile pour
-              mettre le sondage en ligne ; a garder seulement si vous
-              voulez retoucher les biscuits.
+sources/      Restes de la premiere version, quand les textures
+              etaient des images calculees a l'avance. La page ne s'en
+              sert plus ; seule la fabrication du QR code y recourt
+              encore. Vous pouvez ignorer ce dossier.
 qr/           Un QR code et une diapo de projection, fabriques avant
               que l'adresse definitive soit connue. A refaire une fois
               le depot cree.
@@ -171,10 +178,14 @@ la salle.
 
 9. LES IMAGES
 -------------
-Les biscuits, le grain du papier et la creme ont ete calcules pour
-cette page (bruit fractal, carte de relief, eclairage), puis
-integres dans index.html. Ils ne reprennent aucune photo de produit
-ni aucun logo : rien a demander comme autorisation pour le cours.
+Les biscuits et le grain du papier sont dessines par le navigateur
+a partir des instructions contenues dans index.html. Ils ne
+reprennent aucune photo de produit ni aucun logo : rien a demander
+comme autorisation pour le cours.
+
+Pour changer leur aspect, cherchez les filtres f-cacao, f-puits et
+f-creme au debut du fichier. baseFrequency commande la finesse du
+grain, surfaceScale le relief, lighting-color la teinte.
 
 Pour mettre une image a vous dans l'en-tete, il faut un fichier que
 vous avez le droit d'utiliser. Envoyez-le et la page sera adaptee.
