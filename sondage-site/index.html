@@ -5,160 +5,166 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sondage Mondelēz — Groupe 1</title>
 <meta name="description" content="Sondage en direct pour l'oral Mondelēz International, ICN Business School, cours PPDE3017.">
-<meta name="theme-color" content="#4a2c1d">
+<meta name="theme-color" content="#7b4fa0">
 <meta name="color-scheme" content="light">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='15' fill='%234a2c1d'/><circle cx='16' cy='16' r='9' fill='%23fbf3e4'/></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='15' fill='%234a2c1d'/><circle cx='16' cy='16' r='9' fill='%23f6f1e6'/></svg>">
 <style>
+  /* Direction « moderne » : fond blanc, un seul accent violet, angles
+     arrondis, sans-serif. Les neutres tirent legerement vers le violet
+     pour que l'ensemble se tienne. */
   :root{
+    --fond:#ffffff;
+    --surface:#f6f5f9;
+    --surface-forte:#f1ecf8;
+    --texte:#16161d;
+    --texte-doux:#6b6b7b;
+    --filet:#eceaf2;
+    --accent:#7b4fa0;
+    --accent-sombre:#683f8a;
+    --accent-pale:#f3edfa;
     --chocolat:#4a2c1d;
-    --chocolat-fonce:#351f14;
-    --caramel:#d99a3e;
-    --rose:#e4637f;
-    --creme:#fbf3e4;
-    --creme-vive:#fffaf0;
-    --gouttiere:clamp(14px,4vw,28px);
+    --gouttiere:clamp(16px,4vw,28px);
+    color-scheme:light;
   }
 
   *{margin:0;padding:0;box-sizing:border-box}
-  /* .bouton impose display:block, qui l'emporterait sur le display:none
-     par defaut de [hidden] : sans ce !important, masquer un bouton avec
-     hidden resterait sans effet. */
   [hidden]{display:none !important}
   html{-webkit-text-size-adjust:100%}
   body{
-    background-color:var(--creme);
-    /* grain de papier : un bruit fractal calcule par le navigateur,
-       trois cents octets au lieu d'une image */
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' seed='3'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.32 0 0 0 0 0.20 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23g)'/%3E%3C/svg%3E");
-    color:var(--chocolat);
-    font-family:Arial,Helvetica,sans-serif;
+    background:var(--fond);
+    color:var(--texte);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     font-size:16px;
-    line-height:1.5;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
   }
-  ::selection{background:var(--caramel);color:var(--chocolat-fonce)}
+  ::selection{background:var(--accent-pale);color:var(--accent-sombre)}
 
-  .page{max-width:620px;margin:0 auto;padding:var(--gouttiere) var(--gouttiere) 48px}
+  .page{max-width:580px;margin:0 auto;padding:var(--gouttiere) var(--gouttiere) 56px}
   .defs{position:absolute;width:0;height:0;overflow:hidden}
 
   /* ---------- en-tete ---------- */
-  header{
-    border:3px solid var(--chocolat);
-    background:var(--creme-vive);
-    box-shadow:7px 7px 0 var(--chocolat);
-    padding:20px 18px;
-    margin-bottom:26px;
-    display:flex;
-    align-items:center;
-    gap:16px;
-  }
-  .visuel{flex:0 0 88px;width:88px;display:block}
+  header{display:flex;align-items:center;gap:16px;padding:8px 0 22px}
+  .visuel{flex:0 0 68px;width:68px;display:block}
   .visuel svg{width:100%;height:auto;display:block}
   header h1{
-    font-family:Georgia,"Times New Roman",serif;
-    font-size:clamp(1.3rem,4.8vw,1.75rem);
-    line-height:1.15;
+    font-size:clamp(1.45rem,5.2vw,1.85rem);
+    line-height:1.12;
     font-weight:700;
+    letter-spacing:-.025em;
   }
-  .surtitre{font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;opacity:.75;margin-bottom:6px}
-  .soustitre{font-size:.82rem;margin-top:7px}
+  .surtitre{
+    font-size:.7rem;font-weight:700;
+    letter-spacing:.12em;text-transform:uppercase;
+    color:var(--accent);margin-bottom:7px;
+  }
+  .soustitre{font-size:.85rem;color:var(--texte-doux);margin-top:8px}
 
-  .consigne{border-left:6px solid var(--caramel);padding:9px 0 9px 13px;font-size:.9rem;margin-bottom:22px}
+  .consigne{
+    background:var(--surface);
+    border-radius:14px;
+    padding:13px 16px;
+    font-size:.88rem;
+    color:var(--texte-doux);
+    margin-bottom:30px;
+  }
 
   /* ---------- questions ---------- */
-  fieldset{
-    border:3px solid var(--chocolat);
-    background:var(--creme-vive);
-    box-shadow:6px 6px 0 var(--caramel);
-    padding:16px 15px 14px;
-    margin-bottom:24px;
+  fieldset{border:0;padding:0;margin:0 0 28px}
+  legend{padding:0;margin-bottom:2px}
+  .numero{
+    display:inline-block;
+    background:var(--accent-pale);color:var(--accent-sombre);
+    font-size:.66rem;font-weight:700;letter-spacing:.08em;
+    padding:3px 8px;border-radius:7px;
+    margin-right:9px;vertical-align:2px;
   }
-  legend{
-    font-family:Georgia,"Times New Roman",serif;
-    font-size:1.02rem;font-weight:700;
-    background:var(--chocolat);color:var(--creme);
-    padding:5px 11px;margin-left:-3px;
-  }
-  .numero{font-size:.78rem;letter-spacing:.1em;opacity:.8;margin-right:7px}
-  .aide{font-size:.78rem;opacity:.75;margin:9px 0 2px}
+  .intitule{font-size:1.02rem;font-weight:700;letter-spacing:-.015em}
+  .aide{font-size:.84rem;color:var(--texte-doux);margin:6px 0 0}
 
-  .options{list-style:none;margin-top:11px;display:grid;gap:8px}
+  .options{list-style:none;margin-top:13px;display:grid;gap:7px}
   .options label{
-    display:flex;align-items:center;gap:10px;
-    border:2px solid var(--chocolat);
-    background:var(--creme);
-    padding:10px 12px;cursor:pointer;font-size:.95rem;
+    display:flex;align-items:center;gap:12px;
+    background:var(--surface);
+    border-radius:13px;
+    padding:13px 15px;
+    cursor:pointer;font-size:.95rem;
+    transition:background .12s ease;
     -webkit-tap-highlight-color:transparent;
   }
+  .options label:hover{background:#efedf4}
   .options input{
     appearance:none;-webkit-appearance:none;
-    flex:0 0 18px;width:18px;height:18px;
-    border:2px solid var(--chocolat);
-    background:var(--creme-vive);margin:0;cursor:pointer;
+    flex:0 0 17px;width:17px;height:17px;
+    border:2px solid #c6c4d2;border-radius:50%;
+    background:var(--fond);margin:0;cursor:pointer;
+    transition:border-color .12s ease,background .12s ease;
   }
-  .options input[type=radio]{border-radius:50%}
-  .options input:checked{background:var(--rose);box-shadow:inset 0 0 0 3px var(--creme-vive)}
-  .options label:has(input:checked){background:var(--caramel);box-shadow:3px 3px 0 var(--chocolat)}
-  .options input:focus-visible{outline:3px solid var(--rose);outline-offset:2px}
+  .options input[type=checkbox]{border-radius:6px}
+  .options input:checked{border-color:var(--accent);background:var(--accent);box-shadow:inset 0 0 0 3px var(--fond)}
+  .options input[type=checkbox]:checked{box-shadow:inset 0 0 0 2.5px var(--fond)}
+  .options label:has(input:checked){background:var(--surface-forte);box-shadow:inset 0 0 0 2px var(--accent)}
+  .options input:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
 
   /* ---------- boutons ---------- */
   .bouton{
     display:block;width:100%;
-    font-family:Arial,Helvetica,sans-serif;
-    font-size:1rem;font-weight:700;
-    padding:15px 16px;
-    border:3px solid var(--chocolat);
-    background:var(--rose);
-    color:var(--creme-vive);
-    box-shadow:6px 6px 0 var(--chocolat);
-    cursor:pointer;
+    font-family:inherit;font-size:1rem;font-weight:700;
+    padding:15px 18px;
+    border:0;border-radius:13px;
+    background:var(--accent);color:#fff;
+    cursor:pointer;letter-spacing:-.01em;
+    transition:background .12s ease;
   }
-  .bouton:active{transform:translate(3px,3px);box-shadow:3px 3px 0 var(--chocolat)}
-  .bouton:focus-visible{outline:3px solid var(--caramel);outline-offset:3px}
-  .bouton[disabled]{opacity:.55;cursor:default}
+  .bouton:hover{background:var(--accent-sombre)}
+  .bouton:active{transform:translateY(1px)}
+  .bouton:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+  .bouton[disabled]{opacity:.5;cursor:default}
   .bouton-secondaire{
-    background:transparent;color:var(--chocolat);
-    box-shadow:4px 4px 0 var(--chocolat);
-    margin-top:18px;font-size:.95rem;
+    background:var(--surface);color:var(--texte);
+    margin-top:14px;font-size:.95rem;
   }
+  .bouton-secondaire:hover{background:#eceaf2}
 
-  .erreur{color:var(--rose);font-weight:700;font-size:.9rem;margin-top:14px}
+  .erreur{color:#c0392f;font-weight:600;font-size:.88rem;margin-top:14px}
   .erreur:empty{display:none}
 
   #merci{
-    border:3px solid var(--chocolat);
-    background:var(--caramel);
-    box-shadow:7px 7px 0 var(--chocolat);
-    padding:20px 18px;
+    background:var(--accent-pale);
+    border-radius:16px;
+    padding:24px 20px;
   }
-  #merci h2{font-family:Georgia,"Times New Roman",serif;font-size:1.25rem;margin-bottom:8px}
-  #merci p{font-size:.92rem}
+  #merci h2{font-size:1.2rem;font-weight:700;letter-spacing:-.02em;margin-bottom:6px}
+  #merci p{font-size:.92rem;color:var(--texte-doux)}
 
   /* ---------- resultats ---------- */
-  #resultats{display:none;margin-top:36px}
+  #resultats{display:none;margin-top:38px}
   #resultats > h2{
-    font-family:Georgia,"Times New Roman",serif;
-    font-size:clamp(1.3rem,4.6vw,1.6rem);
-    border-bottom:4px solid var(--chocolat);
-    padding-bottom:7px;
+    font-size:clamp(1.35rem,4.8vw,1.6rem);
+    font-weight:700;letter-spacing:-.025em;
   }
-  .etat{font-size:.8rem;opacity:.8;margin:9px 0 26px}
+  .etat{font-size:.82rem;color:var(--texte-doux);margin:6px 0 30px}
 
-  .bloc-resultat{margin-bottom:32px}
+  .bloc-resultat{margin-bottom:34px}
   .bloc-resultat h3{
-    font-family:Georgia,"Times New Roman",serif;
-    font-size:1rem;font-weight:700;margin-bottom:14px;
-    border-left:6px solid var(--rose);padding-left:11px;
+    font-size:.98rem;font-weight:700;letter-spacing:-.015em;
+    margin-bottom:16px;padding-bottom:9px;
+    border-bottom:1px solid var(--filet);
   }
   /* Une ligne par question : 3 options sur 3 colonnes, 4 sur 4, les
      8 marques de Q1 sur deux rangees de 4. */
-  .grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:16px 10px}
+  .grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:18px 10px}
   .grille[data-n="3"]{grid-template-columns:repeat(3,1fr)}
   .grille[data-n="4"]{grid-template-columns:repeat(4,1fr)}
   .grille[data-n="8"]{grid-template-columns:repeat(4,1fr)}
   .cellule{text-align:center}
-  .cellule svg{width:100%;height:auto;max-width:112px;display:block;margin:0 auto}
-  .pourcent{font-family:Georgia,"Times New Roman",serif;font-size:1.15rem;font-weight:700;margin-top:6px;line-height:1.1}
-  .etiquette{font-size:.76rem;line-height:1.25;margin-top:2px;overflow-wrap:break-word}
+  .cellule svg{width:100%;height:auto;max-width:104px;display:block;margin:0 auto}
+  .pourcent{
+    font-size:1.18rem;font-weight:700;letter-spacing:-.03em;
+    margin-top:9px;line-height:1.1;
+    font-variant-numeric:tabular-nums;
+  }
+  .etiquette{font-size:.76rem;line-height:1.3;margin-top:1px;color:var(--texte-doux);overflow-wrap:break-word}
 
   .creme-monte{
     transform:translateY(90px);
@@ -166,35 +172,44 @@
   }
   .sans-transition .creme-monte{transition:none}
 
-  footer{margin-top:40px;border-top:3px solid var(--chocolat);padding-top:13px;font-size:.74rem;opacity:.8}
+  footer{
+    margin-top:48px;padding-top:16px;
+    border-top:1px solid var(--filet);
+    font-size:.74rem;color:var(--texte-doux);
+  }
 
   /* Vue projection (adresse suivie de ?resultat) : tout grossit pour
      rester lisible du fond de la salle. */
   body.ecran .page{max-width:1180px}
-  body.ecran header{margin-bottom:18px}
-  body.ecran .cellule svg{max-width:152px}
-  body.ecran .pourcent{font-size:1.7rem;margin-top:10px}
+  body.ecran header{padding-bottom:16px}
+  body.ecran .cellule svg{max-width:150px}
+  body.ecran .pourcent{font-size:1.75rem;margin-top:12px}
   body.ecran .etiquette{font-size:1rem}
-  body.ecran .bloc-resultat{margin-bottom:42px}
-  body.ecran .bloc-resultat h3{font-size:1.35rem}
-  body.ecran #resultats > h2{font-size:2.2rem}
+  body.ecran .bloc-resultat{margin-bottom:46px}
+  body.ecran .bloc-resultat h3{font-size:1.3rem;padding-bottom:12px}
+  body.ecran #resultats > h2{font-size:2.3rem}
   body.ecran .etat{font-size:.95rem}
-  body.ecran .grille{gap:20px 26px;justify-content:center}
-  body.ecran .grille[data-n="3"]{grid-template-columns:repeat(3,180px)}
-  body.ecran .grille[data-n="4"]{grid-template-columns:repeat(4,180px)}
+  /* aligne a gauche comme les titres : centrer laissait un vide sous
+     les questions a trois ou quatre reponses */
+  body.ecran .grille{gap:22px 26px;justify-content:start}
+  body.ecran #revele{max-width:420px}
+  body.ecran .grille[data-n="3"]{grid-template-columns:repeat(3,178px)}
+  body.ecran .grille[data-n="4"]{grid-template-columns:repeat(4,178px)}
   @media (min-width:900px){
     body.ecran .grille[data-n="8"]{grid-template-columns:repeat(8,minmax(0,1fr))}
   }
 
   @media (max-width:420px){
-    header{flex-direction:column;align-items:flex-start;gap:12px}
-    .grille{gap:12px 7px}
-    .cellule svg{max-width:96px}
+    header{gap:13px}
+    .visuel{flex:0 0 56px;width:56px}
+    .grille{gap:14px 7px}
+    .cellule svg{max-width:92px}
     .pourcent{font-size:1.05rem}
     .etiquette{font-size:.72rem}
   }
   @media (prefers-reduced-motion:reduce){
     .creme-monte{transition:none}
+    .bouton,.options label,.options input{transition:none}
     .bouton:active{transform:none}
   }
 </style>
@@ -260,7 +275,7 @@
   <form id="sondage" novalidate>
 
     <fieldset>
-      <legend><span class="numero">Q1</span>Marques connues</legend>
+      <legend><span class="numero">Q1</span><span class="intitule">Marques connues</span></legend>
       <p class="aide">Parmi ces marques, lesquelles connaissez-vous ? Plusieurs réponses possibles.</p>
       <div class="options">
         <label><input type="checkbox" name="q1" value="Oreo"> Oreo</label>
@@ -275,7 +290,7 @@
     </fieldset>
 
     <fieldset>
-      <legend><span class="numero">Q2</span>Travailler chez Mondelēz</legend>
+      <legend><span class="numero">Q2</span><span class="intitule">Travailler chez Mondelēz</span></legend>
       <p class="aide">Aimeriez-vous travailler chez Mondelēz après vos études ?</p>
       <div class="options">
         <label><input type="radio" name="q2" value="Oui"> Oui</label>
@@ -285,7 +300,7 @@
     </fieldset>
 
     <fieldset>
-      <legend><span class="numero">Q3</span>Fréquence d'achat</legend>
+      <legend><span class="numero">Q3</span><span class="intitule">Fréquence d'achat</span></legend>
       <p class="aide">À quelle fréquence achetez-vous du chocolat ou des biscuits ?</p>
       <div class="options">
         <label><input type="radio" name="q3" value="Chaque semaine"> Chaque semaine</label>
@@ -295,7 +310,7 @@
     </fieldset>
 
     <fieldset>
-      <legend><span class="numero">Q4</span>Critère employeur</legend>
+      <legend><span class="numero">Q4</span><span class="intitule">Critère employeur</span></legend>
       <p class="aide">Quel critère compte le plus pour vous chez un employeur ?</p>
       <div class="options">
         <label><input type="radio" name="q4" value="Salaire"> Salaire</label>
@@ -306,7 +321,7 @@
     </fieldset>
 
     <fieldset>
-      <legend><span class="numero">Q5</span>Engagements RSE</legend>
+      <legend><span class="numero">Q5</span><span class="intitule">Engagements RSE</span></legend>
       <p class="aide">Selon vous, Mondelēz tient-il ses engagements RSE ?</p>
       <div class="options">
         <label><input type="radio" name="q5" value="Oui"> Oui</label>
