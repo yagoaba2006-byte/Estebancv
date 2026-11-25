@@ -32,19 +32,28 @@ Le meme fichier sert deux publics differents, selon l'adresse ouverte.
 
 LES TELEPHONES ouvrent l'adresse nue, celle du QR code :
     https://votre-compte.github.io/sondage-mondelez/
-Ils voient le formulaire, votent, recoivent un remerciement. Ils ne
-voient jamais les resultats : aucun bouton ne leur est propose.
+Ils voient les trois questions, votent, recoivent un remerciement.
+Ils ne voient jamais les resultats : aucun bouton ne leur est
+propose.
 
 L'ECRAN DE PROJECTION ouvre la meme adresse suivie de ?resultat :
     https://votre-compte.github.io/sondage-mondelez/?resultat
-Pas de formulaire, un seul bouton : « Voir le resultat du sondage ».
-Tout y est agrandi pour rester lisible depuis le fond de la salle.
-Gardez cet onglet ouvert pendant que les etudiants votent, et
-cliquez au moment voulu : les biscuits partent vides et la creme
-monte jusqu'au pourcentage obtenu.
+Pas de formulaire, pas de bouton : les resultats sont affiches des
+l'ouverture et se remplissent tout seuls. A chaque vote qui arrive,
+la creme des biscuits monte ou descend vers le nouveau pourcentage.
+Tout y est agrandi pour rester lisible du fond de la salle. Ouvrez
+cet onglet avant de projeter le QR code, et laissez-le tourner.
 
 N'oubliez pas le ?resultat sur l'ordinateur : sans lui, vous
 obtiendrez le formulaire, pas les resultats.
+
+SI VOUS PREFEREZ GARDER LE SUSPENSE : dans index.html, cherchez la
+ligne   var REVELATION = "direct";   et remplacez direct par bouton.
+L'ecran attendra alors un clic sur « Voir le resultat du sondage »
+pour tout devoiler d'un coup. A vous de voir : en direct, la salle
+voit les reponses pendant qu'elle vote, ce qui influence les
+derniers votants ; avec le bouton, l'effet de devoilement est plus
+fort mais il faut penser a cliquer.
 
 
 3. CREER LE SERVICE QUI RECUEILLE LES VOTES (10 MINUTES, GRATUIT)
@@ -69,9 +78,7 @@ c) Menu de gauche : SQL Editor > New query. Coller exactement ceci,
         cree_le timestamptz default now(),
         q1 text[],
         q2 text,
-        q3 text,
-        q4 text,
-        q5 text
+        q3 text
       );
 
       alter table votes enable row level security;
@@ -137,15 +144,12 @@ la salle.
 
 6. LE JOUR DE L'ORAL
 --------------------
-- Sur l'ordinateur qui projette, ouvrir l'adresse avec ?resultat et
-  laisser l'onglet ouvert.
+- Sur l'ordinateur qui projette, ouvrir l'adresse avec ?resultat
+  avant de montrer le QR code, et laisser l'onglet ouvert.
 - Projeter le QR code, laisser une a deux minutes pour voter.
-- Quand tout le monde a vote, cliquer sur « Voir le resultat du
-  sondage ». Les biscuits se remplissent en huit dixiemes de
-  seconde.
-- Les chiffres se rafraichissent ensuite tout seuls toutes les
-  cinq secondes, sans repartir de zero : un retardataire qui vote
-  fait simplement bouger la creme.
+- Il n'y a rien a cliquer. Les biscuits se remplissent au fur et a
+  mesure, et le nombre de votes s'affiche en violet sous le titre.
+  Un retardataire qui vote fait simplement bouger la creme.
 - Le pourcentage est ecrit sous chaque biscuit. Pour la question 1,
   plusieurs reponses etant possibles, chaque pourcentage est la part
   des votants ayant coche cette marque : le total depasse 100 %,
@@ -168,8 +172,10 @@ la salle.
 - Telephone 1 : voter. Verifier le remerciement, et qu'aucun bouton
   de resultat n'apparait.
 - Telephone 2 : voter aussi.
-- Ordinateur : ouvrir l'adresse avec ?resultat, cliquer sur le
-  bouton. Les deux votes doivent apparaitre, et la creme monter.
+- Ordinateur : ouvrir l'adresse avec ?resultat. Les deux votes
+  doivent apparaitre sans rien cliquer, et la creme monter. Faire
+  voter un troisieme appareil et verifier que les chiffres bougent
+  dans les cinq secondes.
 - Verifier que le telephone 1 ne peut pas voter deux fois.
 - Verifier l'affichage sur un petit ecran (moins de 420 px).
 - Avant l'oral, effacer les votes d'essai : dans Supabase, Table
@@ -209,12 +215,18 @@ QR code et ses resultats en direct.
 
 12. MODIFIER LA PAGE
 --------------------
+Le sondage compte trois questions : les marques connues, l'envie de
+travailler chez Mondelez, et le critere employeur. Deux autres
+questions ont existe, sur la frequence d'achat et sur la RSE ; elles
+ont ete retirees pour tenir en moins d'une minute.
+
 Le texte des questions se trouve deux fois dans index.html :
 - dans le formulaire, entre les balises <fieldset> ;
 - dans la liste QUESTIONS du script, qui sert aux resultats.
 Si vous changez une reponse, changez-la aux deux endroits, a
 l'identique, accents compris, sinon le comptage ne retrouvera pas
-l'option.
+l'option. Si vous ajoutez une question, pensez aussi a ajouter sa
+colonne dans la table : alter table votes add column q4 text;
 
 Dans les resultats, chaque biscuit porte deux reperes :
 <question>-<rang>-c pour la creme qui monte, -t pour le texte du

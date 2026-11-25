@@ -144,6 +144,10 @@
     font-weight:700;letter-spacing:-.025em;
   }
   .etat{font-size:.82rem;color:var(--texte-doux);margin:6px 0 30px}
+  .etat .compte{
+    color:var(--accent);font-weight:700;
+    font-variant-numeric:tabular-nums;
+  }
 
   .bloc-resultat{margin-bottom:34px}
   .bloc-resultat h3{
@@ -269,7 +273,7 @@
   </div>
 </header>
 
-<p class="consigne">Cinq questions, moins d'une minute. Un seul vote par téléphone. Les résultats s'affichent au tableau.</p>
+<p class="consigne">Trois questions, moins d'une minute. Un seul vote par téléphone. Les résultats s'affichent au tableau.</p>
 
 <section id="bloc-vote">
   <form id="sondage" novalidate>
@@ -300,34 +304,13 @@
     </fieldset>
 
     <fieldset>
-      <legend><span class="numero">Q3</span><span class="intitule">Fréquence d'achat</span></legend>
-      <p class="aide">À quelle fréquence achetez-vous du chocolat ou des biscuits ?</p>
-      <div class="options">
-        <label><input type="radio" name="q3" value="Chaque semaine"> Chaque semaine</label>
-        <label><input type="radio" name="q3" value="Chaque mois"> Chaque mois</label>
-        <label><input type="radio" name="q3" value="Rarement"> Rarement</label>
-      </div>
-    </fieldset>
-
-    <fieldset>
-      <legend><span class="numero">Q4</span><span class="intitule">Critère employeur</span></legend>
+      <legend><span class="numero">Q3</span><span class="intitule">Critère employeur</span></legend>
       <p class="aide">Quel critère compte le plus pour vous chez un employeur ?</p>
       <div class="options">
-        <label><input type="radio" name="q4" value="Salaire"> Salaire</label>
-        <label><input type="radio" name="q4" value="Évolution"> Évolution</label>
-        <label><input type="radio" name="q4" value="Impact"> Impact</label>
-        <label><input type="radio" name="q4" value="Ambiance"> Ambiance</label>
-      </div>
-    </fieldset>
-
-    <fieldset>
-      <legend><span class="numero">Q5</span><span class="intitule">Engagements RSE</span></legend>
-      <p class="aide">Selon vous, Mondelēz tient-il ses engagements RSE ?</p>
-      <div class="options">
-        <label><input type="radio" name="q5" value="Oui"> Oui</label>
-        <label><input type="radio" name="q5" value="Partiellement"> Partiellement</label>
-        <label><input type="radio" name="q5" value="Non"> Non</label>
-        <label><input type="radio" name="q5" value="Sans avis"> Sans avis</label>
+        <label><input type="radio" name="q3" value="Salaire"> Salaire</label>
+        <label><input type="radio" name="q3" value="Évolution"> Évolution</label>
+        <label><input type="radio" name="q3" value="Impact"> Impact</label>
+        <label><input type="radio" name="q3" value="Ambiance"> Ambiance</label>
       </div>
     </fieldset>
 
@@ -371,6 +354,16 @@ var TABLE   = "votes";
 var CLE_VOTE = "mondelez_groupe1_vote";
 var DELAI_RAFRAICHISSEMENT = 5000;
 
+/* Comment l'ecran de projection montre les resultats.
+   "direct" : ils sont affiches des l'ouverture et se remplissent tout
+              seuls, la creme montant a chaque vote qui arrive. C'est
+              le vrai sondage en direct, sans rien a cliquer.
+   "bouton" : l'ecran attend un clic pour tout reveler d'un coup, ce
+              qui garde le suspense mais demande une manipulation.
+   A savoir : en direct, la salle voit les reponses pendant qu'elle
+   vote, ce qui influence les derniers votants. */
+var REVELATION = "direct";
+
 /* Un seul fichier, deux usages. Les téléphones ouvrent l'adresse nue :
    ils votent, et ne voient jamais les résultats. L'écran de projection
    ouvre la même adresse suivie de ?resultat. */
@@ -383,11 +376,9 @@ function entetes(){
 }
 
 var QUESTIONS = [
-  {id:"q1", type:"multi",  titre:"Q1 — Marques connues",            options:["Oreo","LU","Milka","Côte d'Or","Prince","Tuc","Toblerone","Aucune"]},
-  {id:"q2", type:"unique", titre:"Q2 — Travailler chez Mondelēz",   options:["Oui","Peut-être","Non"]},
-  {id:"q3", type:"unique", titre:"Q3 — Fréquence d'achat",          options:["Chaque semaine","Chaque mois","Rarement"]},
-  {id:"q4", type:"unique", titre:"Q4 — Critère employeur",          options:["Salaire","Évolution","Impact","Ambiance"]},
-  {id:"q5", type:"unique", titre:"Q5 — Engagements RSE",            options:["Oui","Partiellement","Non","Sans avis"]}
+  {id:"q1", type:"multi",  titre:"Q1 — Marques connues",          options:["Oreo","LU","Milka","Côte d'Or","Prince","Tuc","Toblerone","Aucune"]},
+  {id:"q2", type:"unique", titre:"Q2 — Travailler chez Mondelēz", options:["Oui","Peut-être","Non"]},
+  {id:"q3", type:"unique", titre:"Q3 — Critère employeur",        options:["Salaire","Évolution","Impact","Ambiance"]}
 ];
 
 /* Course utile de la crème, en unités du viewBox 0 0 105 105. */
@@ -490,7 +481,7 @@ function lireFormulaire(){
   if(coches.length === 0){ manquantes.push("Q1"); }
   vote.q1 = Array.prototype.map.call(coches, function(c){ return c.value; });
 
-  ["q2","q3","q4","q5"].forEach(function(nom){
+  ["q2","q3"].forEach(function(nom){
     var choix = form.querySelector('input[name="' + nom + '"]:checked');
     if(!choix){ manquantes.push(nom.toUpperCase()); }
     vote[nom] = choix ? choix.value : null;
@@ -594,7 +585,7 @@ function charger(){
     return;
   }
 
-  fetch(pointDeCollecte() + "?select=q1,q2,q3,q4,q5", {
+  fetch(pointDeCollecte() + "?select=q1,q2,q3", {
     headers: entetes(), cache: "no-store"
   }).then(function(r){
     if(!r.ok){ throw new Error("HTTP " + r.status); }
@@ -602,9 +593,10 @@ function charger(){
   }).then(function(data){
     var votes = Object.prototype.toString.call(data) === "[object Array]" ? data : [];
     peindre(compter(votes));
-    etat.textContent = votes.length === 0
-      ? "Aucun vote pour le moment. Mise à jour automatique toutes les 5 secondes."
-      : votes.length + (votes.length > 1 ? " votes" : " vote") + " · mise à jour automatique toutes les 5 secondes.";
+    etat.innerHTML = votes.length === 0
+      ? "En attente du premier vote. L'affichage se met à jour tout seul."
+      : '<span class="compte">' + votes.length + '</span> ' +
+        (votes.length > 1 ? "votes" : "vote") + " · l'affichage se met à jour tout seul.";
   }).catch(function(){
     etat.textContent = "Résultats indisponibles pour le moment.";
   });
@@ -639,14 +631,22 @@ document.getElementById("revele").addEventListener("click", reveler);
 document.getElementById("revele-merci").addEventListener("click", reveler);
 
 if(MODE_ECRAN){
-  /* Écran de projection : pas de formulaire, un seul bouton. */
+  /* Écran de projection : pas de formulaire. */
   document.body.classList.add("ecran");
   document.getElementById("sondage").hidden = true;
   document.getElementById("merci").hidden = true;
   document.getElementById("revele-merci").hidden = true;
-  document.getElementById("revele").classList.remove("bouton-secondaire");
-  document.querySelector(".consigne").textContent =
-    "Écran de projection. Cliquez sur le bouton quand tout le monde a voté.";
+
+  if(REVELATION === "direct"){
+    document.getElementById("revele").hidden = true;
+    document.querySelector(".consigne").textContent =
+      "Écran de projection. Les résultats se remplissent à mesure que la salle vote.";
+    reveler();
+  }else{
+    document.getElementById("revele").classList.remove("bouton-secondaire");
+    document.querySelector(".consigne").textContent =
+      "Écran de projection. Cliquez sur le bouton quand tout le monde a voté.";
+  }
 }else{
   /* Téléphone : on vote, et c'est tout. */
   document.getElementById("revele").hidden = true;
