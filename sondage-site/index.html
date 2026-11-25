@@ -353,12 +353,14 @@ var REPOS_CREME = 90;
    d'encastrement, puis le disque cacao strie par-dessus. Les images
    sont declarees une seule fois dans <defs> et reprises par <use>.
    ------------------------------------------------------------------ */
+/* Identifiants : <id>-c porte la creme animee, <id>-t le texte du
+   pourcentage, ou <id> vaut {question}-{index}, par exemple q2-0. */
 function biscuitSVG(id, etiquette){
   return '' +
     '<svg viewBox="0 0 104 104" role="img" aria-label="' + echapper(etiquette) + '">' +
       '<circle cx="50" cy="50" r="33" fill="url(#tuile-puits)"/>' +
       '<g clip-path="url(#puits-creme)">' +
-        '<g class="creme-monte" id="creme-' + id + '">' +
+        '<g class="creme-monte" id="' + id + '-c">' +
           '<rect x="14" y="16" width="72" height="70" fill="url(#tuile-creme)"/>' +
         '</g>' +
       '</g>' +
@@ -382,7 +384,7 @@ function construireBlocs(){
     q.options.forEach(function(opt, i){
       var id = cleOption(q.id, i);
       html += '<div class="cellule">' + biscuitSVG(id, opt) +
-              '<p class="pourcent" id="pct-' + id + '">—</p>' +
+              '<p class="pourcent" id="' + id + '-t">—</p>' +
               '<p class="etiquette">' + echapper(opt) + '</p></div>';
     });
     html += '</div></div>';
@@ -393,7 +395,7 @@ function construireBlocs(){
 function construireEntete(){
   var hote = document.getElementById("visuel-entete");
   hote.innerHTML = biscuitSVG("entete", "Biscuit rond fourré à la crème");
-  var creme = document.getElementById("creme-entete");
+  var creme = document.getElementById("entete-c");
   if(creme){ creme.style.transform = "translateY(0px)"; }
 }
 
@@ -496,8 +498,8 @@ function peindre(parts){
   QUESTIONS.forEach(function(q){
     q.options.forEach(function(opt, i){
       var id = cleOption(q.id, i), p = parts[id] || 0;
-      var creme = document.getElementById("creme-" + id);
-      var pct = document.getElementById("pct-" + id);
+      var creme = document.getElementById(id + "-c");
+      var pct = document.getElementById(id + "-t");
       if(creme){ creme.style.transform = "translateY(" + (COURSE_CREME * (1 - p)).toFixed(2) + "px)"; }
       if(pct){ pct.textContent = Math.round(p * 100) + " %"; }
     });
@@ -507,7 +509,7 @@ function peindre(parts){
 function vider(){
   QUESTIONS.forEach(function(q){
     q.options.forEach(function(opt, i){
-      var creme = document.getElementById("creme-" + cleOption(q.id, i));
+      var creme = document.getElementById(cleOption(q.id, i) + "-c");
       if(creme){ creme.style.transform = "translateY(" + REPOS_CREME + "px)"; }
     });
   });

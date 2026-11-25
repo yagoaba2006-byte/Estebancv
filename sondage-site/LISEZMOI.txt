@@ -130,7 +130,16 @@ basculer sur Wooclap, evenement AAKRQUJ, deja configure avec son
 QR code et ses resultats en direct.
 
 
-11. MODIFIER LA PAGE
+11. CHOIX D'ECRITURE
+--------------------
+Les questions et les reponses sont en texte simple : pas d'icones,
+pas d'emojis, pas d'abreviations. C'est volontaire. Au
+videoprojecteur et sur les vieux telephones, une icone se lit mal
+ou ne s'affiche pas du tout, alors qu'un mot reste lisible partout.
+Les seules images de la page sont les biscuits des resultats.
+
+
+12. MODIFIER LA PAGE
 --------------------
 Le texte des questions se trouve deux fois dans index.html :
 - dans le formulaire, entre les balises <fieldset> ;
@@ -139,3 +148,8 @@ Le texte des questions se trouve deux fois dans index.html :
 Si vous changez une reponse, changez-la aux deux endroits, a
 l'identique (accents compris), sinon le comptage ne retrouvera
 pas l'option.
+
+Dans les resultats, chaque biscuit porte deux reperes :
+<question>-<rang>-c pour la creme qui monte, et -t pour le texte du
+pourcentage. Par exemple q2-0-c est la creme du premier biscuit de
+la question 2.
