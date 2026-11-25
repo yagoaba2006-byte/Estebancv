@@ -1,0 +1,141 @@
+SONDAGE EN DIRECT — MONDELEZ INTERNATIONAL
+Oral de groupe, ICN Business School, PPDE3017 « My future career »
+Groupe 1 : Tamara, Juliane, Ilian, Yago
+
+
+1. CE QUE CONTIENT CE DOSSIER
+-----------------------------
+index.html    La page complete : HTML, CSS, JavaScript, images.
+              Un seul fichier, aucune dependance exterieure.
+              Les textures (papier, cacao, creme) sont integrees
+              dedans en base64 : rien d'autre a televerser.
+LISEZMOI.txt  Ce fichier.
+
+
+2. CE QU'IL RESTE A FAIRE AVANT L'ORAL
+--------------------------------------
+Une seule chose est indispensable : creer la base de donnees et
+coller son adresse dans index.html (etape 3). Sans elle, la page
+s'affiche normalement mais aucun vote n'est enregistre et la
+section des resultats indique « Resultats indisponibles ».
+La page n'invente jamais de chiffres.
+
+
+3. CREER LA BASE DE DONNEES (5 MINUTES, GRATUIT)
+------------------------------------------------
+a) Aller sur https://console.firebase.google.com et se connecter
+   avec un compte Google.
+b) « Ajouter un projet ». Un nom au choix, par exemple
+   sondage-mondelez-groupe1. Google Analytics : refuser.
+c) Dans le menu de gauche : Build > Realtime Database >
+   « Creer une base de donnees ».
+   - Emplacement : Belgium (europe-west1).
+   - Regles de securite : « Demarrer en mode test ».
+     Le mode test ouvre l'ecriture pendant 30 jours. C'est voulu
+     pour un sondage de cours : les etudiants votent sans compte.
+d) En haut de la page s'affiche une adresse de la forme
+   https://sondage-mondelez-groupe1-default-rtdb.europe-west1.firebasedatabase.app
+   La copier.
+e) Ouvrir index.html dans un editeur de texte, chercher la ligne
+   qui commence par   var BASE_URL =
+   et remplacer l'adresse d'exemple par la votre, entre guillemets,
+   SANS barre oblique a la fin.
+f) Enregistrer, puis renvoyer le fichier sur GitHub (etape 4).
+
+
+4. METTRE LA PAGE EN LIGNE (GITHUB PAGES)
+-----------------------------------------
+a) Sur github.com : « New repository ». Nom au choix, par exemple
+   sondage-mondelez. Cocher « Public ». Creer.
+b) « uploading an existing file », deposer index.html.
+   Important : le fichier doit s'appeler index.html et se trouver
+   a la racine du depot, pas dans un sous-dossier.
+c) Onglet Settings > Pages.
+   - Source : « Deploy from a branch »
+   - Branch : main   -   dossier : / (root)   -   Save
+d) Attendre une a deux minutes, puis recharger la page Settings >
+   Pages : l'adresse publique s'affiche en haut. Elle ressemble a
+   https://votre-compte.github.io/sondage-mondelez/
+e) Ouvrir cette adresse sur un telephone pour verifier.
+
+
+5. LE QR CODE
+-------------
+Une fois l'adresse GitHub Pages connue, generer le QR code avec
+n'importe quel generateur gratuit (par exemple qr-code-generator.com
+ou le generateur integre a Canva). Coller l'adresse complete,
+telecharger l'image en PNG, et la projeter en grand sur la
+diapositive. Verifier avant l'oral que le QR code se scanne depuis
+le fond de la salle.
+
+
+6. LE JOUR DE L'ORAL
+--------------------
+- Projeter le QR code, laisser une a deux minutes pour voter.
+- Sur l'ordinateur qui projette, ouvrir la meme adresse et cliquer
+  sur « Voir le resultat du sondage », en bas du formulaire.
+  La section des resultats apparait : pour chaque question, un
+  biscuit par reponse, dont la creme monte en huit dixiemes de
+  seconde jusqu'au pourcentage obtenu.
+- Les resultats se rafraichissent tout seuls toutes les 5 secondes :
+  inutile de recharger la page pendant que les derniers votent.
+- Le pourcentage est affiche en chiffres sous chaque biscuit.
+  Pour la question 1 (plusieurs reponses possibles), le pourcentage
+  est la part des votants qui ont coche cette marque ; le total
+  depasse donc 100 %, c'est normal.
+
+
+7. REGLES DE FONCTIONNEMENT
+---------------------------
+- Un vote par appareil. Le navigateur retient le vote dans sa
+  memoire locale (cle mondelez_groupe1_vote). Quelqu'un qui revient
+  sur la page voit directement le message de remerciement et le
+  lien vers les resultats.
+- Pour revoter depuis le meme telephone pendant les essais : ouvrir
+  la page en navigation privee, ou vider les donnees du site.
+- Toutes les questions doivent etre remplies ; sinon un message
+  rouge indique lesquelles manquent.
+
+
+8. TESTER AVANT L'ORAL (A FAIRE A DEUX TELEPHONES)
+--------------------------------------------------
+- Telephone 1 : voter. Verifier le message de remerciement.
+- Telephone 2 : ouvrir la page, cliquer « Voir le resultat » sans
+  voter. Le vote du telephone 1 doit apparaitre en moins de 5 s.
+- Verifier que la creme monte bien a l'ouverture des resultats.
+- Verifier que le telephone 1 ne peut pas voter deux fois.
+- Verifier l'affichage sur un petit ecran (moins de 420 px de
+  large) : l'en-tete passe en colonne, les biscuits en grille.
+- Avant l'oral, vider les votes d'essai : dans la console Firebase,
+  Realtime Database, supprimer le noeud « votes ».
+
+
+9. LES IMAGES
+-------------
+Les biscuits, le grain du papier et la creme ont ete generes
+specialement pour cette page (bruit fractal, carte de relief,
+eclairage calcule), puis integres dans index.html. Ils ne
+reprennent aucune photo de produit ni aucun logo de marque :
+rien a demander comme autorisation pour le cours.
+
+Pour remplacer le visuel de l'en-tete par une image a vous (photo
+ou visuel Canva), il faut un fichier que vous avez le droit
+d'utiliser. Demandez-le : la page sera adaptee pour l'afficher.
+
+
+10. PLAN DE SECOURS
+-------------------
+Si le reseau de la salle ou la base de donnees pose probleme :
+basculer sur Wooclap, evenement AAKRQUJ, deja configure avec son
+QR code et ses resultats en direct.
+
+
+11. MODIFIER LA PAGE
+--------------------
+Le texte des questions se trouve deux fois dans index.html :
+- dans le formulaire, entre les balises <fieldset> ;
+- dans la liste QUESTIONS du script, qui sert a l'affichage des
+  resultats.
+Si vous changez une reponse, changez-la aux deux endroits, a
+l'identique (accents compris), sinon le comptage ne retrouvera
+pas l'option.
