@@ -10,6 +10,11 @@ index.html    La page complete : HTML, CSS, JavaScript, images.
               Les textures (papier, cacao, creme) sont integrees
               dedans en base64 : rien d'autre a televerser.
 LISEZMOI.txt  Ce fichier.
+sources/      Les fichiers qui ont servi a fabriquer les images, et
+              les scripts qui les recalculent (textures.py) puis les
+              integrent dans la page (injecter.py). Inutile pour
+              mettre le sondage en ligne : seul index.html compte.
+              A garder si vous voulez retoucher les biscuits.
 
 
 2. CE QU'IL RESTE A FAIRE AVANT L'ORAL
