@@ -184,10 +184,25 @@ la salle.
 
 9. LES IMAGES
 -------------
-Les biscuits et le grain du papier sont dessines par le navigateur
-a partir des instructions contenues dans index.html. Ils ne
-reprennent aucune photo de produit ni aucun logo : rien a demander
-comme autorisation pour le cours.
+Les biscuits sont dessines par le navigateur a partir des
+instructions contenues dans index.html. Ils ne reprennent aucune
+photo de produit ni aucun logo de marque.
+
+Une seule image vient de l'exterieur : le motif « asfalt-dark »
+telecharge sur transparenttextures.com, pose sur l'anneau des
+biscuits pour densifier le grain de cacao. Il pese 4 ko et ne
+represente rien, c'est du grain. Le site ne precise pas sa licence
+sur sa page d'accueil ; il reprend la collection Subtle Patterns,
+distribuee librement, souvent citee sous licence Creative Commons
+avec attribution. Le pied de page de la page mentionne donc
+transparenttextures.com.
+
+Si cette incertitude vous gene pour un travail note, la page
+fonctionne tres bien sans : supprimez dans index.html le motif
+t-grain et la ligne qui l'utilise,
+      '<use href="#couronne" fill="url(#t-grain)"/>' +
+et les biscuits retrouvent leur grain calcule, sans rien devoir a
+personne.
 
 Pour changer leur aspect, cherchez les filtres f-cacao, f-puits et
 f-creme au debut du fichier. baseFrequency commande la finesse du
