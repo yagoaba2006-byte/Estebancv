@@ -66,63 +66,42 @@ derniers votants ; avec le bouton, l'effet de devoilement est plus
 fort mais il faut penser a cliquer.
 
 
-3. CREER LE SERVICE QUI RECUEILLE LES VOTES (10 MINUTES, GRATUIT)
------------------------------------------------------------------
-Pourquoi c'est indispensable : GitHub Pages ne sait que livrer des
-fichiers, il n'execute rien et ne retient rien. Pour que les votes
-de trente telephones arrivent sur votre ecran, ils doivent passer
-par un service exterieur. Nous utilisons Supabase : gratuit,
-serveurs en Europe, inscription avec votre compte GitHub.
+3. LA COLLECTE DES VOTES : RIEN A FAIRE
+---------------------------------------
+Il n'y a aucun compte a creer, aucune cle a coller, aucune base de
+donnees a configurer. La page est prete a servir telle quelle.
 
-a) https://supabase.com — « Start your project », se connecter avec
-   GitHub.
-b) « New project ». Nom au choix, par exemple sondage-mondelez.
-   Mot de passe de base de donnees : generez-le et gardez-le, vous
-   n'en aurez pas besoin ici. Region : Frankfurt ou Paris.
-   La creation prend une a deux minutes.
-c) Menu de gauche : SQL Editor > New query. Coller exactement ceci,
-   puis « Run » :
+Comment ca marche : chaque reponse possible a son compteur chez
+Abacus, un service de compteurs publics et gratuits. Un vote fait
+monter d'une unite le compteur de chaque reponse choisie, plus un
+compteur « votants » qui sert a calculer les pourcentages. L'ecran
+relit ces compteurs toutes les cinq secondes et remplit les
+biscuits. Personne ne s'inscrit nulle part.
 
-      create table votes (
-        id bigint generated always as identity primary key,
-        cree_le timestamptz default now(),
-        q1 text[],
-        q2 text,
-        q3 text
-      );
+Vos compteurs sont ranges sous un nom tire au hasard, visible en
+haut du script :
 
-      alter table votes enable row level security;
+      var ESPACE = "mondelez-icn-g1-..."
 
-      create policy "tout le monde peut voter"
-        on votes for insert to anon with check (true);
+POUR REPARTIR DE ZERO apres les essais : changez ce nom. Mettez-en
+un autre, aussi long et aussi peu devinable, par exemple en
+changeant quelques lettres a la fin. Des compteurs neufs partent
+tous a zero. C'est la seule facon d'effacer : on ne remet pas un
+compteur en arriere.
 
-      create policy "tout le monde peut lire"
-        on votes for select to anon using (true);
-
-   Les deux dernieres instructions sont ce qui autorise un visiteur
-   sans compte a voter et a lire les totaux. C'est voulu pour un
-   sondage de cours.
-
-d) Menu de gauche : Project Settings > API. Relever deux valeurs :
-   - Project URL, de la forme https://abcdefgh.supabase.co
-   - la cle publique, appelee « anon public » ou « publishable ».
-     C'est une longue suite de caracteres. Elle est faite pour etre
-     dans une page web : ce n'est pas un secret, elle ne donne que
-     les droits que vous venez d'ecrire.
-
-e) Ouvrir index.html dans un editeur de texte. Tout en haut du
-   script, un encadre CONFIGURATION contient trois lignes :
-
-      var ADRESSE = "https://VOTRE-PROJET.supabase.co";
-      var CLE     = "VOTRE-CLE-PUBLIQUE";
-      var TABLE   = "votes";
-
-   Remplacer les deux premieres valeurs par les votres, entre
-   guillemets. Ne pas toucher a la troisieme. Enregistrer.
-
-Tant que le mot VOTRE-PROJET est present, la page s'affiche
-normalement mais n'enregistre rien et annonce « Resultats
-indisponibles ». Elle n'invente jamais de chiffres.
+CE QU'IL FAUT SAVOIR, HONNETEMENT :
+- Ce nom se trouve dans le code de la page, que n'importe qui peut
+  lire. Quelqu'un de determine pourrait donc faire monter vos
+  compteurs. Pour un sondage de cours, le risque est theorique,
+  mais ne publiez pas ce nom ailleurs que dans la page.
+- Abacus est un service gratuit, sans engagement. S'il est lent ou
+  indisponible le jour J, l'ecran affiche « Resultats momentanement
+  indisponibles » et reessaie tout seul. Si cela dure, basculez sur
+  Wooclap (section 11).
+- Le site a ete teste de bout en bout contre ce service : deux
+  telephones ont vote, l'ecran a suivi, les pourcentages etaient
+  justes et le second vote depuis le meme appareil a bien ete
+  refuse.
 
 
 4. METTRE LA PAGE EN LIGNE (GITHUB PAGES)
@@ -188,8 +167,8 @@ la salle.
   dans les cinq secondes.
 - Verifier que le telephone 1 ne peut pas voter deux fois.
 - Verifier l'affichage sur un petit ecran (moins de 420 px).
-- Avant l'oral, effacer les votes d'essai : dans Supabase, Table
-  Editor > votes > selectionner les lignes > supprimer.
+- Avant l'oral, effacer les votes d'essai : changer le nom ESPACE
+  en haut du script (voir section 3), puis redeposer le fichier.
 
 
 9. LES IMAGES
@@ -233,7 +212,7 @@ Les seules images de la page sont les biscuits des resultats.
 
 11. PLAN DE SECOURS
 -------------------
-Si le reseau de la salle ou le service de collecte pose probleme :
+Si le reseau de la salle ou le service de compteurs pose probleme :
 basculer sur Wooclap, evenement AAKRQUJ, deja configure avec son
 QR code et ses resultats en direct.
 
