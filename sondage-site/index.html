@@ -60,6 +60,13 @@
   }
   .soustitre{font-size:.85rem;color:var(--texte-doux);margin-top:8px}
 
+  .bandeau-demo{
+    background:#fdecef;color:#9b2240;
+    border-radius:12px;padding:11px 15px;
+    font-size:.85rem;margin-bottom:18px;
+  }
+  .bandeau-demo strong{letter-spacing:.06em;text-transform:uppercase;font-size:.78rem}
+
   .consigne{
     background:var(--surface);
     border-radius:14px;
@@ -269,6 +276,10 @@
 
 <div class="page">
 
+<p class="bandeau-demo" id="bandeau-demo" hidden>
+  <strong>Répétition</strong> — chiffres inventés pour l'essai. Ce ne sont pas de vraies réponses.
+</p>
+
 <header>
   <span class="visuel" id="visuel-entete"></span>
   <div>
@@ -372,7 +383,28 @@ var REVELATION = "direct";
 /* Un seul fichier, deux usages. Les téléphones ouvrent l'adresse nue :
    ils votent, et ne voient jamais les résultats. L'écran de projection
    ouvre la même adresse suivie de ?resultat. */
-var MODE_ECRAN = location.search.indexOf("resultat") !== -1;
+var MODE_ECRAN = location.search.indexOf("resultat") !== -1 ||
+                 location.search.indexOf("demo") !== -1;
+
+/* Mode repetition : ouvrir l'adresse suivie de ?demo affiche l'ecran
+   de projection rempli de chiffres inventes, pour repeter l'oral avant
+   que le service de collecte existe. Un bandeau rouge le dit, et la
+   page ne fait appel a aucun serveur dans ce mode. */
+var MODE_DEMO = location.search.indexOf("demo") !== -1;
+var VOTES_DEMO = [
+  {q1:["Oreo","LU","Milka","Prince"],              q2:"Peut-être", q3:"Ambiance"},
+  {q1:["Oreo","Milka","Toblerone"],                q2:"Oui",       q3:"Impact"},
+  {q1:["Oreo","LU","Tuc","Côte d'Or"],             q2:"Peut-être", q3:"Salaire"},
+  {q1:["Oreo","Prince"],                           q2:"Non",       q3:"Évolution"},
+  {q1:["Oreo","LU","Milka","Côte d'Or","Prince"],  q2:"Oui",       q3:"Ambiance"},
+  {q1:["Oreo","Milka"],                            q2:"Peut-être", q3:"Ambiance"},
+  {q1:["Oreo","LU","Prince","Toblerone"],          q2:"Oui",       q3:"Impact"},
+  {q1:["Oreo","Côte d'Or","Milka"],                q2:"Peut-être", q3:"Salaire"},
+  {q1:["Oreo","LU"],                               q2:"Non",       q3:"Ambiance"},
+  {q1:["Oreo","Milka","Prince","Tuc"],             q2:"Peut-être", q3:"Évolution"},
+  {q1:["Oreo","LU","Milka"],                       q2:"Oui",       q3:"Ambiance"},
+  {q1:["Oreo","Toblerone"],                        q2:"Peut-être", q3:"Impact"}
+];
 
 function configuree(){ return ADRESSE.indexOf("VOTRE-PROJET") === -1; }
 function pointDeCollecte(){ return ADRESSE.replace(/\/+$/, "") + "/rest/v1/" + TABLE; }
@@ -586,6 +618,13 @@ function vider(){
 function charger(){
   var etat = document.getElementById("etat-resultats");
 
+  if(MODE_DEMO){
+    peindre(compter(VOTES_DEMO));
+    etat.innerHTML = '<span class="compte">' + VOTES_DEMO.length +
+      "</span> votes — chiffres inventés pour la répétition.";
+    return;
+  }
+
   if(!configuree()){
     etat.textContent = "Résultats indisponibles : le service de collecte n'est pas encore configuré.";
     return;
@@ -642,6 +681,8 @@ if(MODE_ECRAN){
   document.getElementById("sondage").hidden = true;
   document.getElementById("merci").hidden = true;
   document.getElementById("revele-merci").hidden = true;
+
+  if(MODE_DEMO){ document.getElementById("bandeau-demo").hidden = false; }
 
   if(REVELATION === "direct"){
     document.getElementById("revele").hidden = true;

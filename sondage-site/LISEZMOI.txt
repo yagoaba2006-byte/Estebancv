@@ -28,7 +28,9 @@ qr/           Un QR code et une diapo de projection, fabriques avant
 
 2. COMMENT LA PAGE EST UTILISEE
 -------------------------------
-Le meme fichier sert deux publics differents, selon l'adresse ouverte.
+Le meme fichier sert trois usages, selon l'adresse ouverte :
+l'adresse nue pour voter, ?resultat pour projeter, ?demo pour
+repeter.
 
 LES TELEPHONES ouvrent l'adresse nue, celle du QR code :
     https://votre-compte.github.io/sondage-mondelez/
@@ -46,6 +48,14 @@ cet onglet avant de projeter le QR code, et laissez-le tourner.
 
 N'oubliez pas le ?resultat sur l'ordinateur : sans lui, vous
 obtiendrez le formulaire, pas les resultats.
+
+POUR REPETER AVANT L'ORAL : ouvrez l'adresse suivie de ?demo
+    https://votre-compte.github.io/sondage-mondelez/?demo
+Vous obtenez l'ecran de projection rempli de douze votes inventes,
+avec un bandeau rouge qui le dit. Rien n'est envoye ni lu nulle
+part. Cela marche meme si le service de collecte n'existe pas
+encore : c'est fait pour repeter l'enchainement, verifier la
+lisibilite au videoprojecteur et montrer le rendu au groupe.
 
 SI VOUS PREFEREZ GARDER LE SUSPENSE : dans index.html, cherchez la
 ligne   var REVELATION = "direct";   et remplacez direct par bouton.
