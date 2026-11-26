@@ -183,6 +183,14 @@
   }
   .sans-transition .creme-monte{transition:none}
 
+  .lien-ecran{margin-bottom:12px}
+  .lien-ecran a{
+    color:var(--accent);font-weight:700;font-size:.9rem;
+    text-decoration:none;
+  }
+  .lien-ecran a:hover{text-decoration:underline}
+  .lien-ecran a:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+
   footer{
     margin-top:48px;padding-top:16px;
     border-top:1px solid var(--filet);
@@ -350,6 +358,7 @@
 </section>
 
 <footer>
+  <p class="lien-ecran" id="lien-ecran"><a href="?resultat">Voir les résultats du sondage →</a></p>
   <p>Oral de groupe PPDE3017 « My future career » · ICN Business School. Page réalisée par le groupe 1 pour le cours ; aucune affiliation avec Mondelēz International. Illustrations dessinées pour cette page ; grain des biscuits d'après un motif de transparenttextures.com.</p>
 </footer>
 
@@ -743,11 +752,18 @@ if(MODE_ECRAN){
       "Écran de projection. Cliquez sur le bouton quand tout le monde a voté.";
   }
 }else{
-  /* Téléphone : on vote, et c'est tout. */
+  /* Téléphone : le formulaire d'abord. Le bouton des résultats
+     n'apparaît qu'une fois le vote envoyé, pour que personne ne voie
+     les réponses des autres avant d'avoir donné la sienne. */
   document.getElementById("revele").hidden = true;
-  document.getElementById("revele-merci").hidden = true;
+  document.getElementById("revele-merci").addEventListener("click", function(){
+    document.getElementById("merci").hidden = true;
+  });
   if(dejaVote()){ afficherMerci(); }
 }
+
+/* Le lien du pied de page ne sert qu'avant d'etre sur l'ecran. */
+if(MODE_ECRAN){ document.getElementById("lien-ecran").hidden = true; }
 </script>
 </body>
 </html>
